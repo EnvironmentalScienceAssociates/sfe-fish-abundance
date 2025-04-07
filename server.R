@@ -10,13 +10,16 @@ function(input, output, session) {
   })
   
   observe({
+    req(nrow(dt1SubYear()) > 0)
+    
     dt1_sub = dt1SubYear()
-    req(nrow(dt1_sub) > 0)
-    freezeReactiveValue(input, "sources")
     opts = sort(unique(dt1_sub$Source))
+  
+    if (!setequal(input$sources, rv$last_sources)) rv$last_sources = input$sources
     overlap = rv$last_sources[rv$last_sources %in% opts]
-    rv$last_sources = overlap
-    updatePickerInput(session, "sources", choices = opts, selected = overlap)
+    sel = if (is.null(input$sources)) NULL else if (length(overlap) > 0) overlap else opts
+    
+    updatePickerInput(session, "sources", choices = opts, selected = sel)
   })
   
   dt1SubSource <- reactive({
