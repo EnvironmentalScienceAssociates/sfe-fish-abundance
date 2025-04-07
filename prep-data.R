@@ -229,7 +229,10 @@ if (!dir.exists("data")) dir.create("data")
 
 dt1 |> 
   dplyr::mutate(Year = lubridate::year(Date),
+                WaterYear = esaRmisc::water_year(Date),
                 Month = lubridate::month(Date),
+                DOY = lubridate::yday(Date),
+                DOWY = esaRmisc::wy_yday(Date),
                 SourceStation = paste(Source, Station),
                 LatRound = round(Latitude, 1),
                 LonRound = round(Longitude, 1)) |> 
