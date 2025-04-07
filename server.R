@@ -109,15 +109,6 @@ function(input, output, session) {
     }
   })
   
-  output$messageButton <- renderUI({
-    if (is.null(rv$shape)){
-      helpText("Use map drawing tools to select samples to include in abundance tally.")
-    } else {
-      validate(need(nrow(dt1SubSpatial()) > 0, "No data in selected area"))
-      input_task_button("tally_fish", "Tally Fish Abundance")
-    }
-  })
-  
   observeEvent(input$map_draw_new_feature, {
     rv$shape = geojsonsf::geojson_sf(jsonify::to_json(input$map_draw_new_feature, unbox = TRUE))
   })
@@ -142,6 +133,23 @@ function(input, output, session) {
     unique(dt1SubSpatial()$Source)
   })
   
+  output$groupby <- renderUI({
+    req(rv$shape)
+    pickerInput(inputId = "group_by", label = "Group By", multiple = TRUE, 
+                choices = c("Taxa", "Source", "Year", "Month", "Date"), 
+                selected = c("Taxa", "Source", "Year"))
+  })
+  
+  output$messageButton <- renderUI({
+    if (is.null(rv$shape)){
+      helpText("Use map drawing tools to select samples to include in abundance tally.")
+    } else {
+      validate(need(nrow(dt1SubSpatial()) > 0, "No data in selected area"))
+      input_task_button("tally_fish", "Tally Fish Abundance")
+    }
+  })
+  
+  
   observeEvent(rv$shape, {
     withProgress(message = "Gathering data...", value = 0, {
       for (x in sourcesSpatial()){
@@ -156,19 +164,6 @@ function(input, output, session) {
     })
   })
   
-  output$groupbyLength <- renderUI({
-    req(rv$shape)
-    tagList(
-      sliderInput(inputId = "length", label = "Fish Length (mm)", min = 0, max = 1945, 
-                  value = c(0, 1945), sep = "", step = 1) |>
-        tooltip("Lengths of fish included in abundance tally. Suisun survey uses standard
-                length and all other surveys use fork length."),
-      pickerInput(inputId = "group_by", label = "Group By", multiple = TRUE, 
-                  choices = c("Taxa", "Source", "Year", "Month", "Date"), 
-                  selected = c("Taxa", "Source", "Year"))
-    )
-  })
-  
   output$sourceMessage <- renderUI({
     req(rv$shape)
     p(paste("Sources in selected area:",
@@ -181,14 +176,13 @@ function(input, output, session) {
     dt2_sub = lapply(rv$dt2, function(dfx){
       if (!is.null(dfx)){
         dfx |> 
-          filter(SampleID %in% dt1_sub$SampleID & 
-                   Length >= input$length[1] & Length <= input$length[2]) |> 
+          filter(SampleID %in% dt1_sub$SampleID) |> 
           group_by(SampleID, Taxa) |> 
           summarise(Count = sum(Count, na.rm = TRUE))
       }
     }) |> 
       bind_rows()
-
+    
     rv$summ = left_join(dt2_sub, select(dt1_sub, SampleID, Source, Year, Month, Date),
                         by = join_by(SampleID)) |> 
       group_by(across(all_of(input$group_by))) |> 

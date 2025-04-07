@@ -11,7 +11,7 @@ page_sidebar(
                   choices = sources, selected = sources_sel,
                   options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 5,
                                  `selected-text-format` = "count > 3")),
-      uiOutput("groupbyLength"),
+      uiOutput("groupby"),
       uiOutput("messageButton")
     ),
     conditionalPanel(
