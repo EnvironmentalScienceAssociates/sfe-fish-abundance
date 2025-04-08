@@ -39,8 +39,10 @@ if (!all(file.exists(file.path("data", data_files)))){
 }
 
 dt1 = readRDS(file.path("data", "dt1.rds"))
-yr_min = min(dt1$Year, na.rm = TRUE)
-yr_max = max(dt1$Year, na.rm = TRUE)
+yrs_range = list("Water" = c("Min" = min(dt1$WaterYear, na.rm = TRUE),
+                             "Max" = max(dt1$WaterYear, na.rm = TRUE)),
+                 "Calendar" = c("Min" = min(dt1$Year, na.rm = TRUE),
+                                "Max" = max(dt1$Year, na.rm = TRUE)))
 
 lat_min = min(dt1$Latitude, na.rm = TRUE)
 lat_max = max(dt1$Latitude, na.rm = TRUE)

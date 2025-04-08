@@ -5,6 +5,15 @@ function(input, output, session) {
                        # initialize dt2 with empty list
                        dt2 = setNames(vector("list", length(sources)), sources))
   
+  observe({
+    lbl = if (input$year_type == "Water") "Water Years" else "Years"
+    updateSliderInput(session, "years", label = lbl, 
+                      min = yrs_range[[input$year_type]][["Min"]], 
+                      max = yrs_range[[input$year_type]][["Max"]], 
+                      value = c(yrs_range[[input$year_type]][["Min"]], 
+                                yrs_range[[input$year_type]][["Max"]]))
+  })
+  
   dt1SubYear <- reactive({
     dt1[dt1[["Year"]] >= input$years[1] & dt1[["Year"]] <= input$years[2],]
   })
@@ -138,9 +147,24 @@ function(input, output, session) {
   
   output$groupby <- renderUI({
     req(rv$shape)
+    opts = c("Taxa", "Source", "Water Year" = "WaterYear", "Month", "Day of Water Year" = "DOWY")
+    sel = c("Taxa", "Source", "Water Year" = "WaterYear")
+    
+    if (input$year_type == "Calendar"){
+      opts = c("Taxa", "Source", "Year", "Month", "Day of Year" = "DOY")
+      sel = c("Taxa", "Source", "Year")
+    }
+    
     pickerInput(inputId = "group_by", label = "Group By", multiple = TRUE, 
-                choices = c("Taxa", "Source", "Year", "Month", "Date"), 
-                selected = c("Taxa", "Source", "Year"))
+                choices = opts, selected = sel)
+  })
+  
+  groupby <- reactive({
+    req(rv$shape)
+    gb = input$group_by
+    # carry date forward if both year and day of year are selected
+    if (all(c("Year", "DOY") %in% gb) | all(c("WaterYear", "DOWY") %in% gb)) gb = c(gb, "Date")
+    gb
   })
   
   output$messageButton <- renderUI({
@@ -151,7 +175,6 @@ function(input, output, session) {
       input_task_button("tally_fish", "Tally Fish Abundance")
     }
   })
-  
   
   observeEvent(rv$shape, {
     withProgress(message = "Gathering data...", value = 0, {
@@ -186,9 +209,10 @@ function(input, output, session) {
     }) |> 
       bind_rows()
     
-    rv$summ = left_join(dt2_sub, select(dt1_sub, SampleID, Source, Year, Month, Date),
+    rv$summ = left_join(dt2_sub, select(dt1_sub, SampleID, Source, Year, WaterYear, 
+                                        Month, DOY, DOWY, Date),
                         by = join_by(SampleID)) |> 
-      group_by(across(all_of(input$group_by))) |> 
+      group_by(across(all_of(groupby()))) |> 
       summarise(Count = sum(Count, na.rm = TRUE))
     
     updateTabsetPanel(session, "nav", selected = "Table")
@@ -211,11 +235,18 @@ function(input, output, session) {
                                `selected-text-format` = "count > 7"))
   })
   
-  output$dateRange <- renderUI({
-    req("Date" %in% input$group_by, rv$summ)
-    mn = min(rv$summ$Date, na.rm = TRUE)
-    mx = max(rv$summ$Date, na.rm = TRUE)
-    dateRangeInput("date_range", label = "Dates", start = mn, end = mx, min = mn, max = mx)
+  output$doy <- renderUI({
+    req(any(c("DOY", "DOWY") %in% input$group_by), rv$summ)
+    if (input$year_type == "Water"){
+      lbl = "Day of Water Year"
+      mn = min(rv$summ$DOWY, na.rm = TRUE)
+      mx = max(rv$summ$DOWY, na.rm = TRUE)
+    } else {
+      lbl = "Day of Year"
+      mn = min(rv$summ$DOY, na.rm = TRUE)
+      mx = max(rv$summ$DOY, na.rm = TRUE)
+    }
+    sliderInput("doy", label = lbl, min = mn, max = mx, value = c(mn, mx), step = 1)
   })
   
   table <- reactive({
@@ -229,10 +260,15 @@ function(input, output, session) {
       req(input$months)
       out = out[out[["Month"]] %in% input$months, ]
     }
-    if ("Date" %in% input$group_by){
-      req(input$date_range)
-      out = out[out[["Date"]] >= input$date_range[1] & 
-                  out[["Date"]] <= input$date_range[2], ]
+    if ("DOY" %in% input$group_by){
+      req(input$doy)
+      out = out[out[["DOY"]] >= input$doy[1] &
+                  out[["DOY"]] <= input$doy[2], ]
+    }
+    if ("DOWY" %in% input$group_by){
+      req(input$doy)
+      out = out[out[["DOWY"]] >= input$doy[1] &
+                  out[["DOWY"]] <= input$doy[2], ]
     }
     out
   })

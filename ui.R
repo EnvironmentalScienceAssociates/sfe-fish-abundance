@@ -1,12 +1,15 @@
 
 page_sidebar(
-  title = "EDI SFE Fish Abundance",
+  title = "SFE Fish Abundance",
   sidebar = sidebar(
     width = 300,
     conditionalPanel(
       condition = 'input.nav == "Map"',
-      sliderInput(inputId = "years", label = "Years", min = yr_min, max = yr_max, 
-                  value = c(yr_min, yr_max), sep = "", step = 1),
+      radioButtons("year_type", "Year Type", choices = c("Water", "Calendar"), 
+                   selected = "Water", inline = TRUE),
+      sliderInput(inputId = "years", label = "Years", sep = "", step = 1, 
+                  min = yrs_range[["Water"]][["Min"]], max = yrs_range[["Water"]][["Max"]], 
+                  value = c(yrs_range[["Water"]][["Min"]], yrs_range[["Water"]][["Max"]])),
       pickerInput(inputId = "sources", label = "Sources", multiple = TRUE, 
                   choices = sources, selected = sources_sel,
                   options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 5,
@@ -18,7 +21,7 @@ page_sidebar(
       condition = 'input.nav == "Table"',
       uiOutput("taxa"),
       uiOutput("months"),
-      uiOutput("dateRange"),
+      uiOutput("doy"),
       downloadButton("download", "Download Table", icon = icon("download"))
     )
 
