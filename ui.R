@@ -24,7 +24,7 @@ page_sidebar(
       uiOutput("doy"),
       downloadButton("download", "Download Table", icon = icon("download"))
     )
-
+    
   ),
   navset_card_underline(
     id = "nav",
@@ -32,10 +32,15 @@ page_sidebar(
       title = "Map",
       leafletOutput("map"),
       absolutePanel(bottom = 20, left = 20, uiOutput("sourceMessage"))
-      ),
+    ),
     nav_panel(
       title = "Table",
       DT::DTOutput("table")
+    ),
+    nav_menu(
+      title = "Links",
+      nav_item(HTML('<a href="https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=1075&revision=2" target="_blank">Data</a>')),
+      nav_item(HTML('<a href="https://github.com/EnvironmentalScienceAssociates/sfe-fish-abundance" target="_blank">Code</a>'))
     )
   )
 )
