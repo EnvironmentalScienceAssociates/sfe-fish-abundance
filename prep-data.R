@@ -229,6 +229,7 @@ if (!dir.exists("data")) dir.create("data")
 
 dt1 |> 
   dplyr::mutate(Year = lubridate::year(Date),
+                # https://github.com/EnvironmentalScienceAssociates/esaRmisc
                 WaterYear = esaRmisc::water_year(Date),
                 Month = lubridate::month(Date),
                 DOY = lubridate::yday(Date),
