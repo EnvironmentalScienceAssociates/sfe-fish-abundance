@@ -2,7 +2,7 @@
 page_sidebar(
   title = "SFE Fish Abundance",
   sidebar = sidebar(
-    width = 300,
+    width = 320,
     conditionalPanel(
       condition = 'input.nav == "Map"',
       radioButtons("year_type", "Year Type", choices = c("Water", "Calendar"), 
@@ -23,8 +23,11 @@ page_sidebar(
       uiOutput("months"),
       uiOutput("doy"),
       downloadButton("download", "Download Table", icon = icon("download"))
-    )
-    
+    ),
+    br(),
+    br(),
+    a(img(src="ESA-small.png", alt="ESA logo", width = "200"), href = "https://esassoc.com/"),
+    helpText("For issues with this app, contact Travis Hinkelman (thinkelman@esassoc.com).")
   ),
   navset_card_underline(
     id = "nav",
