@@ -38,7 +38,7 @@ page_sidebar(
     ),
     nav_panel(
       title = "Table",
-      DT::DTOutput("table")
+      reactableOutput("table")
     ),
     nav_menu(
       title = "Links",

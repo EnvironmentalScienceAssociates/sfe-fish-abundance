@@ -7,6 +7,7 @@ library(leaflet)
 library(leaflet.extras)
 library(sf)
 library(lubridate)
+library(reactable)
 
 if (!dir.exists("data")) dir.create("data")
 

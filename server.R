@@ -23,7 +23,7 @@ function(input, output, session) {
     
     dt1_sub = dt1SubYear()
     opts = sort(unique(dt1_sub$Source))
-  
+    
     if (!setequal(input$sources, rv$last_sources)) rv$last_sources = input$sources
     overlap = rv$last_sources[rv$last_sources %in% opts]
     sel = if (is.null(input$sources)) NULL else if (length(overlap) > 0) overlap else opts
@@ -273,10 +273,28 @@ function(input, output, session) {
     out
   })
   
-  output$table <- DT::renderDataTable({
+  output$table <- renderReactable({
     req(rv$summ)
-    mutate(table(), Count = round(Count))
-  }, rownames = FALSE)
+    dfx = mutate(table(), Count = round(Count))
+    chars = sapply(colnames(dfx), function(x){
+      max(nchar(c(x, as.character(unique(dfx[[x]])))))
+    })
+    
+    col_widths <- function(chars){
+      colDef(minWidth = chars*10 + 30)
+    }
+    
+    reactable(dfx,
+              highlight = TRUE,
+              fullWidth = FALSE,
+              defaultColDef = colDef(
+                defaultSortOrder = "desc",
+                headerStyle = list(background = "#f7f7f8")),
+              columns = lapply(chars, col_widths),
+              showPageSizeOptions = TRUE,
+              pageSizeOptions = c(15, 25, 50, 100),
+              defaultPageSize = 15)
+  })
   
   output$download <- downloadHandler(
     filename = function() {
