@@ -277,7 +277,7 @@ function(input, output, session) {
     req(rv$summ)
     dfx = mutate(table(), Count = round(Count))
     chars = sapply(colnames(dfx), function(x){
-      max(nchar(c(x, as.character(unique(dfx[[x]])))))
+      max(nchar(c(x, as.character(unique(dfx[[x]])))), na.rm = TRUE)
     })
     
     col_widths <- function(chars){
