@@ -237,6 +237,8 @@ dt1 |>
                 SourceStation = paste(Source, Station),
                 LatRound = round(Latitude, 1),
                 LonRound = round(Longitude, 1)) |> 
+  select(Source, Station, SourceStation, Latitude, Longitude, LatRound, LonRound,
+         Year, WaterYear, Month, Date, DOY, DOWY, SampleID) |> 
   saveRDS(file.path("data", "dt1.rds"))
 
 sources = levels(dt1$Source)
