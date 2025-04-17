@@ -26,7 +26,9 @@ page_sidebar(
     ),
     br(),
     br(),
-    a(img(src="ESA-small.png", alt="ESA logo", width = "200"), href = "https://esassoc.com/"),
+    a(img(src="ESA-small.png", alt="ESA logo", width = "200"), 
+      href = "https://esassoc.com/",
+      target = "_blank"),
     helpText("For issues with this app, contact Travis Hinkelman (thinkelman@esassoc.com).")
   ),
   navset_card_underline(
