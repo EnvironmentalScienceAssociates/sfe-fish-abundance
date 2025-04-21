@@ -2,8 +2,8 @@
 function(input, output, session) {
   
   rv <- reactiveValues(last_sources = sources_sel, shape = NULL, summ = NULL,
-                       # initialize dt2 with empty list
-                       dt2 = setNames(vector("list", length(sources)), sources))
+                       # initialize counts with empty list
+                       counts = setNames(vector("list", length(sources)), sources))
   
   observe({
     lbl = if (input$year_type == "Water") "Water Years" else "Years"
@@ -14,15 +14,15 @@ function(input, output, session) {
                                 yrs_range[[input$year_type]][["Max"]]))
   })
   
-  dt1SubYear <- reactive({
-    dt1[dt1[["Year"]] >= input$years[1] & dt1[["Year"]] <= input$years[2],]
+  samplesSubYear <- reactive({
+    samples[samples[["Year"]] >= input$years[1] & samples[["Year"]] <= input$years[2],]
   })
   
   observe({
-    req(nrow(dt1SubYear()) > 0)
+    req(nrow(samplesSubYear()) > 0)
     
-    dt1_sub = dt1SubYear()
-    opts = sort(unique(dt1_sub$Source))
+    samples_sub = samplesSubYear()
+    opts = sort(unique(samples_sub$Source))
     
     if (!setequal(input$sources, rv$last_sources)) rv$last_sources = input$sources
     overlap = rv$last_sources[rv$last_sources %in% opts]
@@ -31,15 +31,15 @@ function(input, output, session) {
     updatePickerInput(session, "sources", choices = opts, selected = sel)
   })
   
-  dt1SubSource <- reactive({
-    dt1_sub = dt1SubYear()
-    dt1_sub[dt1_sub[["Source"]] %in% input$sources,]
+  samplesSubSource <- reactive({
+    samples_sub = samplesSubYear()
+    samples_sub[samples_sub[["Source"]] %in% input$sources,]
   })
   
   stations <- reactive({
     # not exactly stations b/c same station label can have many points
-    req(nrow(dt1SubSource()) > 0)
-    dt1SubSource() |> 
+    req(nrow(samplesSubSource()) > 0)
+    samplesSubSource() |> 
       select(Source, Station, SourceStation, LatRound, LonRound, Latitude, Longitude) |> 
       distinct() |> 
       filter(!(is.na(Latitude) | is.na(Longitude)))
@@ -116,7 +116,7 @@ function(input, output, session) {
                          fillOpacity = 0.8,
                          group = "sources") |> 
         groupOptions("sources", zoomLevels = 7:10)  |> 
-        addLegend("bottomright", pal = pal, values = unique(dt1SubSource()$Source), 
+        addLegend("bottomright", pal = pal, values = unique(samplesSubSource()$Source), 
                   title = "Data Source", opacity = 1)
     }
   })
@@ -133,16 +133,16 @@ function(input, output, session) {
     rv$shape = NULL
   })
   
-  dt1SubSpatial <- reactive({
+  samplesSubSpatial <- reactive({
     req(rv$shape)
-    dt1_sub = dt1SubSource()
+    samples_sub = samplesSubSource()
     stations_selected = st_join(stationPoints(), rv$shape, join = st_within) |> 
       filter(!is.na(feature_type))
-    dt1_sub[dt1_sub[["SourceStation"]] %in% stations_selected[["SourceStation"]],]
+    samples_sub[samples_sub[["SourceStation"]] %in% stations_selected[["SourceStation"]],]
   })
   
   sourcesSpatial <- reactive({
-    unique(dt1SubSpatial()$Source)
+    unique(samplesSubSpatial()$Source)
   })
   
   output$groupby <- renderUI({
@@ -171,7 +171,7 @@ function(input, output, session) {
     if (is.null(rv$shape)){
       helpText("Use map drawing tools to select samples to include in abundance tally.")
     } else {
-      validate(need(nrow(dt1SubSpatial()) > 0, "No data in selected area"))
+      validate(need(nrow(samplesSubSpatial()) > 0, "No data in selected area"))
       input_task_button("tally_fish", "Tally Fish Abundance")
     }
   })
@@ -179,12 +179,10 @@ function(input, output, session) {
   observeEvent(rv$shape, {
     withProgress(message = "Gathering data...", value = 0, {
       for (x in sourcesSpatial()){
-        if (is.null(rv$dt2[[x]])){
+        if (is.null(rv$counts[[x]])){
           incProgress(1/length(sourcesSpatial()), detail = x)
-          rv$dt2[[x]] = readRDS(file.path("data", paste0("dt2-", gsub(" ", "", x), ".rds"))) |> 
-            # for now, the app is focused on counts of present species
-            # it reduces the size of the dataset to drop the zero counts
-            filter(Count > 0)
+          fl = if (x == "YBFMP") "Counts-YBFMP.rds" else paste0("Counts-SFE-", gsub(" ", "", x), ".rds")
+          rv$counts[[x]] = readRDS(file.path("data", fl))
         }
       }
     })
@@ -197,19 +195,19 @@ function(input, output, session) {
   })
   
   observeEvent(input$tally_fish,{
-    req(rv$shape, nrow(dt1SubSpatial()) > 0)
-    dt1_sub = dt1SubSpatial()
-    dt2_sub = lapply(rv$dt2, function(dfx){
+    req(rv$shape, nrow(samplesSubSpatial()) > 0)
+    samples_sub = samplesSubSpatial()
+    counts_sub = lapply(rv$counts, function(dfx){
       if (!is.null(dfx)){
         dfx |> 
-          filter(SampleID %in% dt1_sub$SampleID) |> 
+          filter(SampleID %in% samples_sub$SampleID) |> 
           group_by(SampleID, Taxa) |> 
           summarise(Count = sum(Count, na.rm = TRUE))
       }
     }) |> 
       bind_rows()
     
-    rv$summ = left_join(dt2_sub, select(dt1_sub, SampleID, Source, Year, WaterYear, 
+    rv$summ = left_join(counts_sub, select(samples_sub, SampleID, Source, Year, WaterYear, 
                                         Month, DOY, DOWY, Date),
                         by = join_by(SampleID)) |> 
       group_by(across(all_of(groupby()))) |> 
