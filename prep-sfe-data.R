@@ -146,51 +146,6 @@ dt1$Notes_tow <- as.factor(ifelse((trimws(as.character(dt1$Notes_tow))==trimws("
 dt1$Notes_flowmeter <- as.factor(ifelse((trimws(as.character(dt1$Notes_flowmeter))==trimws("NA")),NA,as.character(dt1$Notes_flowmeter)))
 
 
-# Here is the structure of the input data frame:
-str(dt1)                            
-attach(dt1)                            
-# The analyses below are basic descriptions of the variables. After testing, they should be replaced.                 
-
-summary(Source)
-summary(Station)
-summary(Latitude)
-summary(Longitude)
-summary(Date)
-summary(Datetime)
-summary(Survey)
-summary(Depth)
-summary(SampleID)
-summary(Method)
-summary(Tide)
-summary(Sal_surf)
-summary(Sal_bot)
-summary(Temp_surf)
-summary(TurbidityNTU)
-summary(TurbidityFNU)
-summary(Secchi)
-summary(Secchi_estimated)
-summary(Tow_duration)
-summary(Tow_area)
-summary(Tow_volume)
-summary(Cable_length)
-summary(Tow_direction)
-summary(Notes_tow)
-summary(Notes_flowmeter) 
-# Get more details on character variables
-
-summary(as.factor(dt1$Source)) 
-summary(as.factor(dt1$Station)) 
-summary(as.factor(dt1$SampleID)) 
-summary(as.factor(dt1$Method)) 
-summary(as.factor(dt1$Tide)) 
-summary(as.factor(dt1$Secchi_estimated)) 
-summary(as.factor(dt1$Tow_direction)) 
-summary(as.factor(dt1$Notes_tow)) 
-summary(as.factor(dt1$Notes_flowmeter))
-detach(dt1)               
-
-
-
 inUrl2  <- "https://pasta.lternet.edu/package/data/eml/edi/1075/2/5429d3e82b1671e7454c7b5d7a15c6ef" 
 infile2 <- tempfile()
 try(download.file(inUrl2,infile2,method="curl",extra=paste0(' -A "',getOption("HTTPUserAgent"),'"')))
@@ -228,6 +183,7 @@ suppressWarnings(dt2$Length <- ifelse(!is.na(as.numeric("NA")) & (trimws(as.char
 if (!dir.exists("data")) dir.create("data")
 
 dt1 |> 
+  dplyr::select(Source, Station, Date, Latitude, Longitude, SampleID) |> 
   dplyr::mutate(Year = lubridate::year(Date),
                 # https://github.com/EnvironmentalScienceAssociates/esaRmisc
                 WaterYear = esaRmisc::water_year(Date),
@@ -237,24 +193,25 @@ dt1 |>
                 SourceStation = paste(Source, Station),
                 LatRound = round(Latitude, 1),
                 LonRound = round(Longitude, 1)) |> 
-  select(Source, Station, SourceStation, Latitude, Longitude, LatRound, LonRound,
-         Year, WaterYear, Month, Date, DOY, DOWY, SampleID) |> 
-  saveRDS(file.path("data", "dt1.rds"))
+  saveRDS(file.path("data", "Samples-SFE.rds"))
 
 sources = levels(dt1$Source)
 
 for (i in sources){
   tmp = dplyr::filter(dt1, Source == i)
   dt2 |> 
-    dplyr::filter(SampleID %in% unique(tmp$SampleID)) |> 
-    saveRDS(file.path("data", paste0("dt2-", gsub(" ", "", i), ".rds")))
+    # for now, the app is focused on counts of present species
+    # it reduces the size of the dataset to drop the zero counts
+    dplyr::filter(Count > 0 & SampleID %in% unique(tmp$SampleID)) |> 
+    dplyr::select(SampleID, Taxa, Count) |> 
+    saveRDS(file.path("data", paste0("Counts-SFE-", gsub(" ", "", i), ".rds")))
 }
 
 if (Sys.getenv("EgnyteKey") != ""){
   remote_path = file.path("Shared", "Admin", "Practices", "Fish and Aquatic Science",
                           "Data Science", "EDI-SFE-Data")
   
-  for (i in list.files("data")){
+  for (i in list.files("data", "-SFE")){
     Sys.sleep(0.4)
     # install egnyter with remotes::install_github("thinkelman-esa/egnyter")
     egnyter::upload_file(file.path("data", i),
