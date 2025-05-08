@@ -42,6 +42,7 @@ page_sidebar(
       title = "Table",
       reactableOutput("table")
     ),
+    nav_spacer(),
     nav_menu(
       title = "Links",
       nav_item(HTML('<a href="https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=1075&revision=2" target="_blank">SFE Data</a>')),
