@@ -279,7 +279,7 @@ function(input, output, session) {
     })
     
     col_widths <- function(chars){
-      colDef(minWidth = chars*10 + 30)
+      colDef(minWidth = chars*10 + 40)
     }
     
     reactable(dfx,
