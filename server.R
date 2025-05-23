@@ -5,6 +5,15 @@ function(input, output, session) {
                        # initialize counts with empty list
                        counts = setNames(vector("list", length(sources)), sources))
   
+  observe({
+    lbl = if (input$year_type == "Water") "Water Years" else "Years"
+    updateSliderInput(session, "years", label = lbl, 
+                      min = yrs_range[[input$year_type]][["Min"]], 
+                      max = yrs_range[[input$year_type]][["Max"]], 
+                      value = c(yrs_range[[input$year_type]][["Min"]], 
+                                yrs_range[[input$year_type]][["Max"]]))
+  })
+  
   samplesSubYear <- reactive({
     samples[samples[["Year"]] >= input$years[1] & samples[["Year"]] <= input$years[2],]
   })
@@ -138,8 +147,7 @@ function(input, output, session) {
   
   output$yearType <- renderUI({
     req(rv$shape)
-    radioButtons("year_type", "Year Type", choices = c("Water", "Calendar"), 
-                 selected = "Water", inline = TRUE)
+    
   })
   
   output$groupby <- renderUI({
@@ -319,7 +327,7 @@ function(input, output, session) {
     }
     
     if (input$nav == "Table" & is.null(rv$summ)){
-      msg = "First select data on the Map tab with the drawing tools and click on the 
+      msg = "First select data on the Map tab with the drawing tools and then click on the 
       'Tally Fish Abundance' button to see the summary table."
     }
     

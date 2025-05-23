@@ -6,13 +6,14 @@ page_sidebar(
     width = 320,
     conditionalPanel(
       condition = 'input.nav == "Map"',
+      radioButtons("year_type", "Year Type", choices = c("Water", "Calendar"), 
+                   selected = "Water", inline = TRUE),
       sliderInput(inputId = "years", label = "Years", sep = "", step = 1, 
                   min = yr_min, max = yr_max, value = c(yr_min, yr_max)),
       pickerInput(inputId = "sources", label = "Surveys", multiple = TRUE, 
                   choices = sources, selected = sources,
                   options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 5,
                                  `selected-text-format` = "count > 3")),
-      uiOutput("yearType"),
       uiOutput("groupby"),
       uiOutput("messageButton")
     ),
