@@ -1,18 +1,9 @@
 
 function(input, output, session) {
   
-  rv <- reactiveValues(last_sources = sources_sel, shape = NULL, summ = NULL,
+  rv <- reactiveValues(last_sources = sources, shape = NULL, summ = NULL,
                        # initialize counts with empty list
                        counts = setNames(vector("list", length(sources)), sources))
-  
-  observe({
-    lbl = if (input$year_type == "Water") "Water Years" else "Years"
-    updateSliderInput(session, "years", label = lbl, 
-                      min = yrs_range[[input$year_type]][["Min"]], 
-                      max = yrs_range[[input$year_type]][["Max"]], 
-                      value = c(yrs_range[[input$year_type]][["Min"]], 
-                                yrs_range[[input$year_type]][["Max"]]))
-  })
   
   samplesSubYear <- reactive({
     samples[samples[["Year"]] >= input$years[1] & samples[["Year"]] <= input$years[2],]
@@ -145,8 +136,14 @@ function(input, output, session) {
     unique(samplesSubSpatial()$Source)
   })
   
-  output$groupby <- renderUI({
+  output$yearType <- renderUI({
     req(rv$shape)
+    radioButtons("year_type", "Year Type", choices = c("Water", "Calendar"), 
+                 selected = "Water", inline = TRUE)
+  })
+  
+  output$groupby <- renderUI({
+    req(rv$shape, input$year_type)
     opts = c("Taxa", "Source", "Water Year" = "WaterYear", "Month", "Day of Water Year" = "DOWY")
     sel = c("Taxa", "Source", "Water Year" = "WaterYear")
     
@@ -208,7 +205,7 @@ function(input, output, session) {
       bind_rows()
     
     rv$summ = left_join(counts_sub, select(samples_sub, SampleID, Source, Year, WaterYear, 
-                                        Month, DOY, DOWY, Date),
+                                           Month, DOY, DOWY, Date),
                         by = join_by(SampleID)) |> 
       group_by(across(all_of(groupby()))) |> 
       summarise(Count = sum(Count, na.rm = TRUE))
@@ -302,5 +299,37 @@ function(input, output, session) {
       write.csv(table(), file, row.names = FALSE)
     }
   )
+  
+  output$helpText <- renderUI({
+    msg = ""
+    
+    if (input$nav == "Map"){
+      msg = paste0("The primary use-case for this app is as a first step for determining species 
+      presence at specific locations based on ongoing Bay-Delta monitoring surveys (", yr_min, " - ", yr_max, "). <br><br>
+      
+      The Surveys dropdown menu includes only the surveys with data for the selected year range. 
+      At the default zoom level, the map shows aggregated survey station locations. Zoom in to 
+      see actual station locations for the selected surveys. <br><br>
+      
+      Use the map drawing tools on the left side of the map to select the area of interest. 
+      Only data from the stations inside the drawn polygon will be included in the summary table.<br><br>
+      
+      After drawing a polygon, select the parameters to include in the summary table from the 
+      'Group By' dropdown menu and click on 'Tally Fish Abundance'.")
+    }
+    
+    if (input$nav == "Table" & is.null(rv$summ)){
+      msg = "First select data on the Map tab with the drawing tools and click on the 
+      'Tally Fish Abundance' button to see the summary table."
+    }
+    
+    if (input$nav == "Table" & !is.null(rv$summ)){
+      msg = "Click on a column heading to sort the table by that column. Filter the table 
+      with the dropdown menu(s) in the sidebar. Click the 'Download Table' button to download a 
+      CSV file with the filtered data."
+    }
+    
+    HTML(msg)
+  })
   
 }

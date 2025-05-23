@@ -16,7 +16,7 @@ sources = c("20mm", "Bay Study", "DJFMP", "EDSM", "FMWT", "Salvage",
 source_colors = c("#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462",
                   "#b3de69", "#fccde5", "#d9d9d9", "#bc80bd", "#ccebc5")
 pal = colorFactor(source_colors, sources)
-sources_sel = c("20mm", "Bay Study")
+# sources_sel = c("20mm", "Bay Study")
 
 sample_files = c("Samples-SFE.rds", "Samples-YBFMP.rds")
 count_files = c("Counts-YBFMP.rds", 
@@ -45,10 +45,8 @@ if (!all(file.exists(file.path("data", data_files)))){
 samples = lapply(sample_files, function(x) readRDS(file.path("data", x))) |> 
   bind_rows()
 
-yrs_range = list("Water" = c("Min" = min(samples$WaterYear, na.rm = TRUE),
-                             "Max" = max(samples$WaterYear, na.rm = TRUE)),
-                 "Calendar" = c("Min" = min(samples$Year, na.rm = TRUE),
-                                "Max" = max(samples$Year, na.rm = TRUE)))
+yr_min = min(samples$Year, na.rm = TRUE)
+yr_max = max(samples$Year, na.rm = TRUE)
 
 lat_min = min(samples$Latitude, na.rm = TRUE)
 lat_max = max(samples$Latitude, na.rm = TRUE)

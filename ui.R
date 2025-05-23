@@ -1,19 +1,18 @@
 
 page_sidebar(
   title = "SFE Fish Abundance",
+  tags$style(HTML(".popover {max-width: 400px;}")),
   sidebar = sidebar(
     width = 320,
     conditionalPanel(
       condition = 'input.nav == "Map"',
-      radioButtons("year_type", "Year Type", choices = c("Water", "Calendar"), 
-                   selected = "Water", inline = TRUE),
       sliderInput(inputId = "years", label = "Years", sep = "", step = 1, 
-                  min = yrs_range[["Water"]][["Min"]], max = yrs_range[["Water"]][["Max"]], 
-                  value = c(yrs_range[["Water"]][["Min"]], yrs_range[["Water"]][["Max"]])),
-      pickerInput(inputId = "sources", label = "Sources", multiple = TRUE, 
-                  choices = sources, selected = sources_sel,
+                  min = yr_min, max = yr_max, value = c(yr_min, yr_max)),
+      pickerInput(inputId = "sources", label = "Surveys", multiple = TRUE, 
+                  choices = sources, selected = sources,
                   options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 5,
                                  `selected-text-format` = "count > 3")),
+      uiOutput("yearType"),
       uiOutput("groupby"),
       uiOutput("messageButton")
     ),
@@ -42,12 +41,18 @@ page_sidebar(
       title = "Table",
       reactableOutput("table")
     ),
-    nav_spacer(),
     nav_menu(
       title = "Links",
       nav_item(HTML('<a href="https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=1075&revision=2" target="_blank">SFE Data</a>')),
       nav_item(HTML('<a href="https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=233&revision=5" target="_blank">YBFMP Data</a>')),
       nav_item(HTML('<a href="https://github.com/EnvironmentalScienceAssociates/sfe-fish-abundance" target="_blank">Code</a>'))
+    ),
+    nav_spacer(),
+    nav_item(
+      popover(
+        actionBttn("help", label = NULL, icon = icon("question"), size = "xs",
+                   color = "primary", style = "material-circle"),
+        title = NULL, uiOutput("helpText"))
     )
   )
 )
