@@ -217,7 +217,7 @@ function(input, output, session) {
   })
   
   output$taxaFilters <- renderUI({
-    req("Taxa" %in% input$group_by, rv$summ)
+    req("Taxa" %in% colnames(rv$summ), rv$summ)
     tagList(
       checkboxGroupInput("taxa_filters", "Filter Taxa List",
                          choices = taxa_filters, selected = taxa_filters),
@@ -226,7 +226,7 @@ function(input, output, session) {
   })
   
   taxaSub <- reactive({
-    req("Taxa" %in% input$group_by, rv$summ, input$taxa_filters)
+    req("Taxa" %in% colnames(rv$summ), rv$summ, input$taxa_filters)
     
     summ_taxa = distinct(select(ungroup(rv$summ), Taxa))
     
@@ -245,7 +245,7 @@ function(input, output, session) {
   })
   
   output$taxa <- renderUI({
-    req("Taxa" %in% input$group_by, rv$summ)
+    req("Taxa" %in% colnames(rv$summ), rv$summ, taxaSub())
     
     dfx = taxaSub()
     if (input$use_common) dfx = arrange(dfx, CommonName)
@@ -259,7 +259,7 @@ function(input, output, session) {
   })
   
   output$months <- renderUI({
-    req("Month" %in% input$group_by, rv$summ)
+    req("Month" %in% colnames(rv$summ), rv$summ)
     pickerInput(inputId = "months", label = "Month", multiple = TRUE, 
                 choices = 1:12, selected = 1:12,
                 options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 6,
@@ -267,7 +267,7 @@ function(input, output, session) {
   })
   
   output$doy <- renderUI({
-    req(any(c("DOY", "DOWY") %in% input$group_by), rv$summ)
+    req(any(c("DOY", "DOWY") %in% colnames(rv$summ)), rv$summ)
     if (input$year_type == "Water"){
       lbl = "Day of Water Year"
       mn = min(rv$summ$DOWY, na.rm = TRUE)
@@ -284,23 +284,23 @@ function(input, output, session) {
   table <- reactive({
     req(rv$summ)
     out = rv$summ
-    if ("Taxa" %in% input$group_by){
+    if ("Taxa" %in% colnames(rv$summ)){
       req(input$taxa, length(input$taxa_filters) > 0)
       out = out[out[["Taxa"]] %in% input$taxa, ]
       out = out |> 
         left_join(taxa_df, by = "Taxa") |> 
         relocate(CommonName, .after = Taxa)
     }
-    if ("Month" %in% input$group_by){
+    if ("Month" %in% colnames(rv$summ)){
       req(input$months)
       out = out[out[["Month"]] %in% input$months, ]
     }
-    if ("DOY" %in% input$group_by){
+    if ("DOY" %in% colnames(rv$summ)){
       req(input$doy)
       out = out[out[["DOY"]] >= input$doy[1] &
                   out[["DOY"]] <= input$doy[2], ]
     }
-    if ("DOWY" %in% input$group_by){
+    if ("DOWY" %in% colnames(rv$summ)){
       req(input$doy)
       out = out[out[["DOWY"]] >= input$doy[1] &
                   out[["DOWY"]] <= input$doy[2], ]
