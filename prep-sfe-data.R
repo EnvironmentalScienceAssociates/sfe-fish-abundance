@@ -168,7 +168,7 @@ unlink(infile2)
 # Fix any interval or ratio columns mistakenly read in as nominal and nominal columns read as numeric or dates read as strings
 
 if (class(dt2$SampleID)!="factor") dt2$SampleID<- as.factor(dt2$SampleID)
-if (class(dt2$Taxa)!="factor") dt2$Taxa<- as.factor(dt2$Taxa)
+# if (class(dt2$Taxa)!="factor") dt2$Taxa<- as.factor(dt2$Taxa)
 if (class(dt2$Length)=="factor") dt2$Length <-as.numeric(levels(dt2$Length))[as.integer(dt2$Length) ]               
 if (class(dt2$Length)=="character") dt2$Length <-as.numeric(dt2$Length)
 if (class(dt2$Count)=="factor") dt2$Count <-as.numeric(levels(dt2$Count))[as.integer(dt2$Count) ]               
@@ -204,6 +204,8 @@ for (i in sources){
     # it reduces the size of the dataset to drop the zero counts
     dplyr::filter(Count > 0 & SampleID %in% unique(tmp$SampleID)) |> 
     dplyr::select(SampleID, Taxa, Count) |> 
+    mutate(Taxa = ifelse(Taxa == "Lampetra ayresi", "Lampetra ayresii", Taxa),
+           Taxa = sub(" spp.", "", Taxa)) |> 
     saveRDS(file.path("data", paste0("Counts-SFE-", gsub(" ", "", i), ".rds")))
 }
 

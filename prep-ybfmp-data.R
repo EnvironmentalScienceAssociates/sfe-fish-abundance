@@ -204,7 +204,7 @@ if (class(dt8$Order)!="factor") dt8$Order<- as.factor(dt8$Order)
 if (class(dt8$Family)!="factor") dt8$Family<- as.factor(dt8$Family)
 if (class(dt8$Genus)!="factor") dt8$Genus<- as.factor(dt8$Genus)
 if (class(dt8$Species)!="factor") dt8$Species<- as.factor(dt8$Species)
-if (class(dt8$Taxa)!="factor") dt8$Taxa<- as.factor(dt8$Taxa)
+# if (class(dt8$Taxa)!="factor") dt8$Taxa<- as.factor(dt8$Taxa)
 
 # Convert Missing Values to NA for non-dates
 
@@ -262,13 +262,14 @@ dt2 |>
   saveRDS(file.path("data", "Samples-YBFMP.rds"))
 
 dt9 |> 
-  dplyr::left_join(dplyr::select(dt8, OrganismCode, Taxa)) |> 
+  dplyr::left_join(dplyr::select(dt8, OrganismCode, Taxa)) |>
+  dplyr::mutate(Taxa = ifelse(Taxa == "Lampetra ayresi", "Lampetra ayresii", Taxa),
+                Taxa = sub(" spp.", "", Taxa)) |> 
   dplyr::select(SampleID = EventID, Taxa, Count) |> 
   # for now, the app is focused on counts of present species
   # it reduces the size of the dataset to drop the zero counts
-  filter(Count > 0) |> 
+  dplyr::filter(Count > 0) |> 
   saveRDS(file.path("data", "Counts-YBFMP.rds"))
-
 
 if (Sys.getenv("EgnyteKey") != ""){
   remote_path = file.path("Shared", "Admin", "Practices", "Fish and Aquatic Science",
