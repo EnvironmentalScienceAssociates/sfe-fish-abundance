@@ -145,11 +145,6 @@ function(input, output, session) {
     unique(samplesSubSpatial()$Source)
   })
   
-  output$yearType <- renderUI({
-    req(rv$shape)
-    
-  })
-  
   output$groupby <- renderUI({
     req(rv$shape, input$year_type)
     opts = c("Taxa", "Source", "Water Year" = "WaterYear", "Month", "Day of Water Year" = "DOWY")
@@ -221,12 +216,45 @@ function(input, output, session) {
     updateTabsetPanel(session, "nav", selected = "Table")
   })
   
+  output$taxaFilters <- renderUI({
+    req("Taxa" %in% input$group_by, rv$summ)
+    tagList(
+      checkboxGroupInput("taxa_filters", "Filter Taxa List",
+                         choices = taxa_filters, selected = taxa_filters),
+      input_switch("use_common", "Use Common Name")
+    )
+  })
+  
+  taxaSub <- reactive({
+    req("Taxa" %in% input$group_by, rv$summ, input$taxa_filters)
+    
+    summ_taxa = distinct(select(ungroup(rv$summ), Taxa))
+    
+    tf = input$taxa_filters[input$taxa_filters != "others"]
+    taxa_opts = unique(unlist(taxa_list[tf], use.names = FALSE))
+    
+    if ("others" %in% input$taxa_filters){
+      taxa_others = summ_taxa$Taxa[!(summ_taxa$Taxa %in% taxa_opts)]
+      taxa_opts = c(taxa_opts, taxa_others)
+    }
+    
+    summ_taxa |> 
+      filter(Taxa %in% taxa_opts) |> 
+      left_join(taxa_df, by = "Taxa") |> 
+      arrange(Taxa)
+  })
+  
   output$taxa <- renderUI({
     req("Taxa" %in% input$group_by, rv$summ)
-    taxa = sort(unique(rv$summ$Taxa))
+    
+    dfx = taxaSub()
+    if (input$use_common) dfx = arrange(dfx, CommonName)
+    taxa = dfx$Taxa
+    if (input$use_common) taxa = setNames(taxa, dfx$CommonName)
+    
     pickerInput(inputId = "taxa", label = "Taxa", multiple = TRUE,
                 choices = taxa, selected = taxa,
-                options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 10,
+                options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 8,
                                `selected-text-format` = "count > 1"))
   })
   
@@ -234,7 +262,7 @@ function(input, output, session) {
     req("Month" %in% input$group_by, rv$summ)
     pickerInput(inputId = "months", label = "Month", multiple = TRUE, 
                 choices = 1:12, selected = 1:12,
-                options = list(`actions-box` = TRUE, `live-search` = TRUE,
+                options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 6,
                                `selected-text-format` = "count > 7"))
   })
   
@@ -249,15 +277,19 @@ function(input, output, session) {
       mn = min(rv$summ$DOY, na.rm = TRUE)
       mx = max(rv$summ$DOY, na.rm = TRUE)
     }
-    sliderInput("doy", label = lbl, min = mn, max = mx, value = c(mn, mx), step = 1)
+    sliderInput("doy", label = lbl, min = mn, max = mx, value = c(mn, mx), 
+                step = 1, ticks = FALSE)
   })
   
   table <- reactive({
     req(rv$summ)
     out = rv$summ
     if ("Taxa" %in% input$group_by){
-      req(input$taxa)
+      req(input$taxa, length(input$taxa_filters) > 0)
       out = out[out[["Taxa"]] %in% input$taxa, ]
+      out = out |> 
+        left_join(taxa_df, by = "Taxa") |> 
+        relocate(CommonName, .after = Taxa)
     }
     if ("Month" %in% input$group_by){
       req(input$months)

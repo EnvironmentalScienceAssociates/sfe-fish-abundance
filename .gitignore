@@ -3,5 +3,5 @@
 .RData
 .Ruserdata
 .Renviron
-data/
+data/*.rds
 rsconnect/

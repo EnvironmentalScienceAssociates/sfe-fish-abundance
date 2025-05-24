@@ -9,7 +9,20 @@ library(sf)
 library(lubridate)
 library(reactable)
 
-if (!dir.exists("data")) dir.create("data")
+taxa_df = read.csv(file.path("data", "all_taxa.csv")) |> 
+  mutate(fed_status = ifelse(fed_status == "", NA, fed_status),
+         state_status = ifelse(state_status %in% c("", " "), NA, state_status)) |> 
+  rename(CommonName = common_name, NativeSpecies = native, 
+         FederalStatus = fed_status, StateStatus = state_status)
+
+taxa_list = list("native" = taxa_df$Taxa[!is.na(taxa_df$NativeSpecies) & taxa_df$NativeSpecies],
+                 "fed" = taxa_df$Taxa[!is.na(taxa_df$FederalStatus)],
+                 "state" = taxa_df$Taxa[!is.na(taxa_df$StateStatus)])
+
+taxa_filters = c("Native Species" = "native",
+                 "Federal Special Status" = "fed",
+                 "State Special Status" = "state",
+                 "All Others" = "others")
 
 sources = c("20mm", "Bay Study", "DJFMP", "EDSM", "FMWT", "Salvage", 
             "SKT", "SLS", "STN", "Suisun", "YBFMP")

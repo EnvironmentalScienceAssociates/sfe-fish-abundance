@@ -3,12 +3,12 @@ page_sidebar(
   title = "SFE Fish Abundance",
   tags$style(HTML(".popover {max-width: 400px;}")),
   sidebar = sidebar(
-    width = 320,
+    width = 340,
     conditionalPanel(
       condition = 'input.nav == "Map"',
       radioButtons("year_type", "Year Type", choices = c("Water", "Calendar"), 
                    selected = "Water", inline = TRUE),
-      sliderInput(inputId = "years", label = "Years", sep = "", step = 1, 
+      sliderInput(inputId = "years", label = "Years", sep = "", step = 1, ticks = FALSE,
                   min = yrs_range[["Water"]][["Min"]], max = yrs_range[["Water"]][["Max"]], 
                   value = c(yrs_range[["Water"]][["Min"]], yrs_range[["Water"]][["Max"]])),
       pickerInput(inputId = "sources", label = "Surveys", multiple = TRUE, 
@@ -20,6 +20,7 @@ page_sidebar(
     ),
     conditionalPanel(
       condition = 'input.nav == "Table"',
+      uiOutput("taxaFilters"),
       uiOutput("taxa"),
       uiOutput("months"),
       uiOutput("doy"),
