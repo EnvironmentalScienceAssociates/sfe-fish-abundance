@@ -5,13 +5,20 @@ function(input, output, session) {
                        # initialize counts with empty list
                        counts = setNames(vector("list", length(sources)), sources))
   
+  
+  yrMin <- reactive({
+    yrs_range[[input$year_type]][["Min"]]
+  })
+  
+  yrMax <- reactive({
+    yrs_range[[input$year_type]][["Max"]]
+  })
+  
   observe({
     lbl = if (input$year_type == "Water") "Water Years" else "Years"
     updateSliderInput(session, "years", label = lbl, 
-                      min = yrs_range[[input$year_type]][["Min"]], 
-                      max = yrs_range[[input$year_type]][["Max"]], 
-                      value = c(yrs_range[[input$year_type]][["Min"]], 
-                                yrs_range[[input$year_type]][["Max"]]))
+                      min = yrMin(), max = yrMax(), 
+                      value = c(yrMin(), yrMax()))
   })
   
   samplesSubYear <- reactive({
@@ -230,16 +237,15 @@ function(input, output, session) {
     
     summ_taxa = distinct(select(ungroup(rv$summ), Taxa))
     
+    taxa_special = NULL
     tf = input$taxa_filters[input$taxa_filters != "others"]
-    taxa_opts = unique(unlist(taxa_list[tf], use.names = FALSE))
-    
-    if ("others" %in% input$taxa_filters){
-      taxa_others = summ_taxa$Taxa[!(summ_taxa$Taxa %in% taxa_opts)]
-      taxa_opts = c(taxa_opts, taxa_others)
-    }
-    
-    summ_taxa |> 
-      filter(Taxa %in% taxa_opts) |> 
+    if (length(tf) > 0) taxa_special = unique(unlist(taxa_list[tf], use.names = FALSE))
+  
+    to = NULL
+    if ("others" %in% input$taxa_filters) to = taxa_others
+
+    tmp = summ_taxa |> 
+      filter(Taxa %in% c(taxa_special, to)) |> 
       left_join(taxa_df, by = "Taxa") |> 
       arrange(Taxa)
   })
@@ -248,6 +254,7 @@ function(input, output, session) {
     req("Taxa" %in% colnames(rv$summ), rv$summ, taxaSub())
     
     dfx = taxaSub()
+
     if (input$use_common) dfx = arrange(dfx, CommonName)
     taxa = dfx$Taxa
     if (input$use_common) taxa = setNames(taxa, dfx$CommonName)
@@ -260,8 +267,9 @@ function(input, output, session) {
   
   output$months <- renderUI({
     req("Month" %in% colnames(rv$summ), rv$summ)
+    mnths = sort(unique(rv$summ$Month))
     pickerInput(inputId = "months", label = "Month", multiple = TRUE, 
-                choices = 1:12, selected = 1:12,
+                choices = mnths, selected = mnths,
                 options = list(`actions-box` = TRUE, `live-search` = TRUE, size = 6,
                                `selected-text-format` = "count > 7"))
   })
@@ -345,7 +353,7 @@ function(input, output, session) {
     
     if (input$nav == "Map"){
       msg = paste0("The primary use-case for this app is as a first step for determining species 
-      presence at specific locations based on ongoing Bay-Delta monitoring surveys (", yr_min, " - ", yr_max, "). <br><br>
+      presence at specific locations based on ongoing Bay-Delta monitoring surveys (", yrMin(), " - ", yrMax(), "). <br><br>
       
       The Surveys dropdown menu includes only the surveys with data for the selected year range. 
       At the default zoom level, the map shows aggregated survey station locations. Zoom in to 

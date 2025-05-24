@@ -19,6 +19,8 @@ taxa_list = list("native" = taxa_df$Taxa[!is.na(taxa_df$NativeSpecies) & taxa_df
                  "fed" = taxa_df$Taxa[!is.na(taxa_df$FederalStatus)],
                  "state" = taxa_df$Taxa[!is.na(taxa_df$StateStatus)])
 
+taxa_others = taxa_df$Taxa[!(taxa_df$Taxa %in% unique(unlist(taxa_list, use.names = FALSE)))]
+
 taxa_filters = c("Native Species" = "native",
                  "Federal Special Status" = "fed",
                  "State Special Status" = "state",
