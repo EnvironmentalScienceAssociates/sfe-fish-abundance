@@ -57,7 +57,8 @@ if (!all(file.exists(file.path("data", data_files)))){
 }
 
 samples = lapply(sample_files, function(x) readRDS(file.path("data", x))) |> 
-  bind_rows()
+  bind_rows() |> 
+  mutate(FillColor = pal(Source))
 
 yrs_range = list("Water" = c("Min" = min(samples$WaterYear, na.rm = TRUE),
                              "Max" = max(samples$WaterYear, na.rm = TRUE)),

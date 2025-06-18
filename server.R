@@ -47,7 +47,8 @@ function(input, output, session) {
     # not exactly stations b/c same station label can have many points
     req(nrow(samplesSubSource()) > 0)
     samplesSubSource() |> 
-      select(Source, Station, SourceStation, LatRound, LonRound, Latitude, Longitude) |> 
+      select(Source, Station, SourceStation, LatRound, LonRound, 
+             Latitude, Longitude, FillColor) |> 
       distinct() |> 
       filter(!(is.na(Latitude) | is.na(Longitude)))
   })
@@ -58,10 +59,11 @@ function(input, output, session) {
   
   sourcePoints <- reactive({
     stations() |>
-      group_by(Source, LatRound, LonRound) |>
+      group_by(Source, LatRound, LonRound, FillColor) |>
       summarise(N = n(),
                 Latitude = mean(Latitude, na.rm = TRUE),
-                Longitude = mean(Longitude, na.rm = TRUE)) |>
+                Longitude = mean(Longitude, na.rm = TRUE))  |> 
+      mutate(Label = paste("N =", N)) |>
       filter(!(is.na(Latitude) | is.na(Longitude))) |>
       st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326)
   })
@@ -103,25 +105,19 @@ function(input, output, session) {
     
     if (nrow(sourcePoints()) > 0){
       proxy |> 
-        addCircleMarkers(data = stationPoints(), 
-                         label = ~Station, 
-                         radius = 4,
-                         color = "black",
-                         weight = 1,
-                         opacity = 1,
-                         fillColor = ~pal(Source),
-                         fillOpacity = 0.8,
-                         group = "stations") |> 
+        leafgl::addGlPoints(data = stationPoints(), 
+                            label = stationPoints()$Station,
+                            radius = 10,
+                            fillColor = stationPoints()$FillColor,
+                            fillOpacity = 1,
+                            group = "stations") |> 
         groupOptions("stations", zoomLevels = 11:20) |> 
-        addCircleMarkers(data = sourcePoints(), 
-                         label = ~ paste("N =", N),
-                         radius = 6,
-                         color = "black",
-                         weight = 1,
-                         opacity = 1,
-                         fillColor = ~pal(Source),
-                         fillOpacity = 0.8,
-                         group = "sources") |> 
+        leafgl::addGlPoints(data = sourcePoints(), 
+                            label = sourcePoints()$Label,
+                            radius = 10,
+                            fillColor = sourcePoints()$FillColor,
+                            fillOpacity = 1,
+                            group = "sources") |> 
         groupOptions("sources", zoomLevels = 7:10)  |> 
         addLegend("bottomright", pal = pal, values = unique(samplesSubSource()$Source), 
                   title = "Data Source", opacity = 1)
@@ -240,10 +236,10 @@ function(input, output, session) {
     taxa_special = NULL
     tf = input$taxa_filters[input$taxa_filters != "others"]
     if (length(tf) > 0) taxa_special = unique(unlist(taxa_list[tf], use.names = FALSE))
-  
+    
     to = NULL
     if ("others" %in% input$taxa_filters) to = taxa_others
-
+    
     tmp = summ_taxa |> 
       filter(Taxa %in% c(taxa_special, to)) |> 
       left_join(taxa_df, by = "Taxa") |> 
@@ -254,7 +250,7 @@ function(input, output, session) {
     req("Taxa" %in% colnames(rv$summ), rv$summ, taxaSub())
     
     dfx = taxaSub()
-
+    
     if (input$use_common) dfx = arrange(dfx, CommonName)
     taxa = dfx$Taxa
     if (input$use_common) taxa = setNames(taxa, dfx$CommonName)
