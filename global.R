@@ -140,3 +140,14 @@ boundary_mat = matrix(
 colnames(boundary_mat) = c("lon", "lat")
 
 boundary = st_sfc(st_polygon(list(boundary_mat)), crs = 4326)
+
+make_circle <- function(lon, lat, radius_m) {
+  # create point
+  data.frame(longitude = lon, latitude = lat, feature_type = "circle") |>
+    st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
+    # transform to Zone 10N for buffering
+    st_transform(crs = 26910) |>
+    st_buffer(dist = radius_m) |>
+    # transform back to WGS84 for mapping
+    st_transform(crs = 4326)
+}

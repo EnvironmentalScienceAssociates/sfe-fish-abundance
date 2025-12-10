@@ -1,6 +1,9 @@
 function(input, output, session) {
   rv <- reactiveValues(
     last_sources = sources,
+    radius_mi = NULL,
+    area_sqmi = NULL,
+    shape_type = NULL,
     shape = NULL,
     summ = NULL,
     # initialize counts with empty list
@@ -106,8 +109,10 @@ function(input, output, session) {
       addDrawToolbar(
         targetGroup = "draw",
         singleFeature = TRUE,
+        polygonOptions = TRUE,
+        rectangleOptions = drawRectangleOptions(metric = FALSE),
+        circleOptions = drawCircleOptions(metric = FALSE, feet = FALSE),
         polylineOptions = FALSE,
-        circleOptions = FALSE,
         markerOptions = FALSE,
         circleMarkerOptions = FALSE,
         editOptions = editToolbarOptions(
@@ -168,21 +173,47 @@ function(input, output, session) {
   })
 
   observeEvent(input$map_draw_new_feature, {
-    rv$shape = geojsonsf::geojson_sf(jsonify::to_json(
-      input$map_draw_new_feature,
-      unbox = TRUE
-    ))
+    feature = input$map_draw_new_feature
+    rv$shape_type = feature$geometry$type
+    if (feature$geometry$type == "Point") {
+      radius = feature$properties$radius
+      rv$shape = make_circle(
+        lon = feature$geometry$coordinates[[1]],
+        lat = feature$geometry$coordinates[[2]],
+        radius_m = radius
+      )
+      rv$radius_mi = round(radius / 1609, 2)
+    } else {
+      rv$shape = geojsonsf::geojson_sf(
+        jsonify::to_json(feature, unbox = TRUE)
+      )
+    }
   })
 
   observeEvent(input$map_draw_edited_features, {
-    rv$shape = geojsonsf::geojson_sf(jsonify::to_json(
-      input$map_draw_edited_features,
-      unbox = TRUE
-    ))
+    # basically same code as used for map_draw_new_feature
+    features = input$map_draw_edited_features$features
+    feature = features[[1]]
+    rv$shape_type = feature$geometry$type
+    if (feature$geometry$type == "Point") {
+      radius = feature$properties$radius
+      rv$shape = make_circle(
+        lon = feature$geometry$coordinates[[1]],
+        lat = feature$geometry$coordinates[[2]],
+        radius_m = radius
+      )
+      rv$radius_mi = round(radius / 1609, 2)
+    } else {
+      rv$shape = geojsonsf::geojson_sf(
+        jsonify::to_json(features, unbox = TRUE)
+      )
+    }
   })
 
   observeEvent(input$map_draw_deleted_features, {
     rv$shape = NULL
+    rv$shape_type = NULL
+    rv$radius_mi = NULL
   })
 
   samplesSubSpatial <- reactive({
@@ -261,12 +292,29 @@ function(input, output, session) {
     })
   })
 
-  output$sourceMessage <- renderUI({
+  sizeText <- reactive({
+    if (is.null(rv$shape_type)) {
+      ""
+    } else if (rv$shape_type == "Point") {
+      paste("Circle radius:", rv$radius_mi, "mi")
+    } else {
+      # st_area returns area in sq. meters
+      area = round(as.numeric(units::set_units(st_area(rv$shape), "mi^2")), 2)
+      paste(rv$shape_type, "area:", area, "sq mi")
+    }
+  })
+
+  output$sizeSourceMessage <- renderUI({
     req(rv$shape)
-    p(paste(
-      "Sources in selected area:",
-      paste(sourcesSpatial(), collapse = ", ")
-    ))
+    list(
+      p(sizeText()),
+      p(
+        paste(
+          "Sources in selected area:",
+          paste(sourcesSpatial(), collapse = ", ")
+        )
+      )
+    )
   })
 
   observeEvent(input$tally_fish, {

@@ -35,6 +35,7 @@ page_sidebar(
           `selected-text-format` = "count > 3"
         )
       ),
+      uiOutput("radius"),
       uiOutput("groupby"),
       uiOutput("messageButton")
     ),
@@ -62,7 +63,7 @@ page_sidebar(
     nav_panel(
       title = "Map",
       leafletOutput("map"),
-      absolutePanel(bottom = 20, left = 20, uiOutput("sourceMessage"))
+      absolutePanel(bottom = 20, left = 20, uiOutput("sizeSourceMessage"))
     ),
     nav_panel(
       title = "Table",
