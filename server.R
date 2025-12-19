@@ -313,13 +313,16 @@ function(input, output, session) {
 
   output$sizeSourceMessage <- renderUI({
     req(rv$shape)
+    p_col = if (input$map_groups[1] == "Topo") "black" else "white"
+    p_style = paste0("color: ", p_col, ";")
     list(
-      p(sizeText()),
+      p(sizeText(), style = p_style),
       p(
         paste(
           "Sources in selected area:",
           paste(sourcesSpatial(), collapse = ", ")
-        )
+        ),
+        style = p_style
       )
     )
   })
