@@ -9,6 +9,8 @@ library(sf)
 library(lubridate)
 library(reactable)
 
+default_zoom = 8
+
 taxa_df = read.csv(file.path("data", "all_taxa.csv")) |>
   mutate(
     fed_status = ifelse(fed_status == "", NA, fed_status),

@@ -99,7 +99,7 @@ function(input, output, session) {
 
   output$map = renderLeaflet({
     leaflet(options = leafletOptions(attributionControl = FALSE)) |>
-      setView(lng = -121.75, lat = 38.36, zoom = 8) |>
+      setView(lng = -121.75, lat = 38.36, zoom = default_zoom) |>
       addProviderTiles(providers$Esri.WorldTopoMap, group = "Topo") |>
       addProviderTiles(providers$Esri.WorldImagery, group = "Satellite") |>
       addLayersControl(
@@ -143,25 +143,32 @@ function(input, output, session) {
       clearControls()
 
     if (nrow(sourcePoints()) > 0) {
+      # switched away from using zoomLevel in groupOptions because was seeing buggy behavior
+      # e.g., zoomLevel option not enforced when changing dataset
+      zl = if (is.null(input$map_zoom)) default_zoom else input$map_zoom
+      if (zl %in% 11:20) {
+        proxy |>
+          leafgl::addGlPoints(
+            data = stationPoints(),
+            label = stationPoints()$Station,
+            radius = 10,
+            fillColor = stationPoints()$FillColor,
+            fillOpacity = 1,
+            group = "stations"
+          )
+      }
+      if (zl %in% 7:10) {
+        proxy |>
+          leafgl::addGlPoints(
+            data = sourcePoints(),
+            label = sourcePoints()$Label,
+            radius = 10,
+            fillColor = sourcePoints()$FillColor,
+            fillOpacity = 1,
+            group = "sources"
+          )
+      }
       proxy |>
-        leafgl::addGlPoints(
-          data = stationPoints(),
-          label = stationPoints()$Station,
-          radius = 10,
-          fillColor = stationPoints()$FillColor,
-          fillOpacity = 1,
-          group = "stations"
-        ) |>
-        groupOptions("stations", zoomLevels = 11:20) |>
-        leafgl::addGlPoints(
-          data = sourcePoints(),
-          label = sourcePoints()$Label,
-          radius = 10,
-          fillColor = sourcePoints()$FillColor,
-          fillOpacity = 1,
-          group = "sources"
-        ) |>
-        groupOptions("sources", zoomLevels = 7:10) |>
         addLegend(
           "bottomright",
           pal = pal,
