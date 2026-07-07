@@ -128,18 +128,6 @@ function(input, output, session) {
 
   observe({
     proxy |>
-      clearControls() |>
-      addLegend(
-        "bottomright",
-        pal = pal,
-        values = input$sources,
-        title = "Data Source",
-        opacity = 1
-      )
-  })
-
-  observe({
-    proxy |>
       clearGroup("sources") |>
       clearGroup("stations") |>
       clearControls()
