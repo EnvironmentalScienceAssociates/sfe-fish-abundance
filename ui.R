@@ -51,7 +51,7 @@ page_sidebar(
       uiOutput("taxa"),
       uiOutput("months"),
       uiOutput("doy"),
-      downloadButton("download", "Download Table", icon = icon("download"))
+      uiOutput("downloadUI")
     ),
     br(),
     br(),

@@ -526,6 +526,11 @@ function(input, output, session) {
     )
   })
 
+  output$downloadUI <- renderUI({
+    req(nrow(tableData()) > 0)
+    downloadButton("download", "Download Table", icon = icon("download"))
+  })
+
   output$download <- downloadHandler(
     filename = function() {
       paste0("EDI-SFE-Fish-Abundance-", round(as.numeric(Sys.time())), ".csv")
