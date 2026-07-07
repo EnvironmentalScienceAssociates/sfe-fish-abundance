@@ -9,9 +9,9 @@ library(sf)
 library(lubridate)
 library(reactable)
 
-default_zoom = 8
+default_zoom <- 8
 
-taxa_df = read.csv(file.path("data", "all_taxa.csv")) |>
+taxa_df <- read.csv(file.path("data", "all_taxa.csv")) |>
   mutate(
     fed_status = ifelse(fed_status == "", NA, fed_status),
     state_status = ifelse(state_status %in% c("", " "), NA, state_status)
@@ -23,7 +23,7 @@ taxa_df = read.csv(file.path("data", "all_taxa.csv")) |>
     StateStatus = state_status
   )
 
-taxa_list = list(
+taxa_list <- list(
   "native" = taxa_df$Taxa[
     !is.na(taxa_df$NativeSpecies) & taxa_df$NativeSpecies
   ],
@@ -31,18 +31,18 @@ taxa_list = list(
   "state" = taxa_df$Taxa[!is.na(taxa_df$StateStatus)]
 )
 
-taxa_others = taxa_df$Taxa[
+taxa_others <- taxa_df$Taxa[
   !(taxa_df$Taxa %in% unique(unlist(taxa_list, use.names = FALSE)))
 ]
 
-taxa_filters = c(
+taxa_filters <- c(
   "Native Species" = "native",
   "Federal Special Status" = "fed",
   "State Special Status" = "state",
   "All Others" = "others"
 )
 
-sources = c(
+sources <- c(
   "20mm",
   "Bay Study",
   "DJFMP",
@@ -55,7 +55,7 @@ sources = c(
   "Suisun",
   "YBFMP"
 )
-source_colors = c(
+source_colors <- c(
   "#8dd3c7",
   "#ffffb3",
   "#bebada",
@@ -68,20 +68,20 @@ source_colors = c(
   "#bc80bd",
   "#ccebc5"
 )
-pal = colorFactor(source_colors, sources)
+pal <- colorFactor(source_colors, sources)
 
-sample_files = c("Samples-SFE.rds", "Samples-YBFMP.rds")
-count_files = c(
+sample_files <- c("Samples-SFE.rds", "Samples-YBFMP.rds")
+count_files <- c(
   "Counts-YBFMP.rds",
   paste0("Counts-SFE-", gsub(" ", "", sources[sources != "YBFMP"]), ".rds")
 )
-data_files = c(sample_files, count_files)
+data_files <- c(sample_files, count_files)
 
 if (!all(file.exists(file.path("data", data_files)))) {
   if (Sys.getenv("EgnyteKey") == "") {
     stop("Need to run prep-data.R to get data used in the Shiny app.")
   } else {
-    remote_path = file.path(
+    remote_path <- file.path(
       "Shared",
       "Admin",
       "Practices",
@@ -104,11 +104,11 @@ if (!all(file.exists(file.path("data", data_files)))) {
   }
 }
 
-samples = lapply(sample_files, function(x) readRDS(file.path("data", x))) |>
+samples <- lapply(sample_files, function(x) readRDS(file.path("data", x))) |>
   bind_rows() |>
   mutate(FillColor = pal(Source))
 
-yrs_range = list(
+yrs_range <- list(
   "Water" = c(
     "Min" = min(samples$WaterYear, na.rm = TRUE),
     "Max" = max(samples$WaterYear, na.rm = TRUE)
@@ -119,12 +119,12 @@ yrs_range = list(
   )
 )
 
-lat_min = min(samples$Latitude, na.rm = TRUE)
-lat_max = max(samples$Latitude, na.rm = TRUE)
-lon_min = min(samples$Longitude, na.rm = TRUE)
-lon_max = max(samples$Longitude, na.rm = TRUE)
+lat_min <- min(samples$Latitude, na.rm = TRUE)
+lat_max <- max(samples$Latitude, na.rm = TRUE)
+lon_min <- min(samples$Longitude, na.rm = TRUE)
+lon_max <- max(samples$Longitude, na.rm = TRUE)
 
-boundary_mat = matrix(
+boundary_mat <- matrix(
   c(
     lon_min,
     lon_min,
@@ -139,9 +139,9 @@ boundary_mat = matrix(
   ),
   ncol = 2
 )
-colnames(boundary_mat) = c("lon", "lat")
+colnames(boundary_mat) <- c("lon", "lat")
 
-boundary = st_sfc(st_polygon(list(boundary_mat)), crs = 4326)
+boundary <- st_sfc(st_polygon(list(boundary_mat)), crs = 4326)
 
 make_circle <- function(lon, lat, radius_m) {
   # create point
@@ -152,4 +152,26 @@ make_circle <- function(lon, lat, radius_m) {
     st_buffer(dist = radius_m) |>
     # transform back to WGS84 for mapping
     st_transform(crs = 4326)
+}
+
+make_shape <- function(feature, features = NULL) {
+  if (feature$geometry$type == "Point") {
+    radius <- feature$properties$radius
+    list(
+      "shape" = make_circle(
+        lon = feature$geometry$coordinates[[1]],
+        lat = feature$geometry$coordinates[[2]],
+        radius_m = radius
+      ),
+      "radius" = round(radius / 1609, 2)
+    )
+  } else {
+    feat <- if (is.null(features)) feature else features
+    list(
+      "shape" = geojsonsf::geojson_sf(
+        jsonify::to_json(feat, unbox = TRUE)
+      ),
+      "radius" = NULL
+    )
+  }
 }

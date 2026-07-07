@@ -172,39 +172,18 @@ function(input, output, session) {
   observeEvent(input$map_draw_new_feature, {
     feature <- input$map_draw_new_feature
     rv$shape_type <- feature$geometry$type
-    if (feature$geometry$type == "Point") {
-      radius <- feature$properties$radius
-      rv$shape <- make_circle(
-        lon = feature$geometry$coordinates[[1]],
-        lat = feature$geometry$coordinates[[2]],
-        radius_m = radius
-      )
-      rv$radius_mi <- round(radius / 1609, 2)
-    } else {
-      rv$shape <- geojsonsf::geojson_sf(
-        jsonify::to_json(feature, unbox = TRUE)
-      )
-    }
+    shape <- make_shape(feature)
+    rv$shape <- shape$shape
+    rv$radius_mi <- shape$radius
   })
 
   observeEvent(input$map_draw_edited_features, {
-    # basically same code as used for map_draw_new_feature
     features <- input$map_draw_edited_features$features
     feature <- features[[1]]
     rv$shape_type <- feature$geometry$type
-    if (feature$geometry$type == "Point") {
-      radius <- feature$properties$radius
-      rv$shape <- make_circle(
-        lon = feature$geometry$coordinates[[1]],
-        lat = feature$geometry$coordinates[[2]],
-        radius_m = radius
-      )
-      rv$radius_mi <- round(radius / 1609, 2)
-    } else {
-      rv$shape <- geojsonsf::geojson_sf(
-        jsonify::to_json(features, unbox = TRUE)
-      )
-    }
+    shape <- make_shape(feature, features)
+    rv$shape <- shape$shape
+    rv$radius_mi <- shape$radius
   })
 
   observeEvent(input$map_draw_deleted_features, {
