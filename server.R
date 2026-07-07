@@ -19,7 +19,7 @@ function(input, output, session) {
   })
 
   observe({
-    lbl = if (input$year_type == "Water") "Water Years" else "Years"
+    lbl <- if (input$year_type == "Water") "Water Years" else "Years"
     updateSliderInput(
       session,
       "years",
@@ -31,22 +31,24 @@ function(input, output, session) {
   })
 
   samplesSubYear <- reactive({
+    yr_col <- if (input$year_type == "Water") "WaterYear" else "Year"
     samples[
-      samples[["Year"]] >= input$years[1] & samples[["Year"]] <= input$years[2],
+      samples[[yr_col]] >= input$years[1] &
+        samples[[yr_col]] <= input$years[2],
     ]
   })
 
   observe({
     req(nrow(samplesSubYear()) > 0)
 
-    samples_sub = samplesSubYear()
-    opts = sort(unique(samples_sub$Source))
+    samples_sub <- samplesSubYear()
+    opts <- sort(unique(samples_sub$Source))
 
     if (!setequal(input$sources, rv$last_sources)) {
-      rv$last_sources = input$sources
+      rv$last_sources <- input$sources
     }
-    overlap = rv$last_sources[rv$last_sources %in% opts]
-    sel = if (is.null(input$sources)) {
+    overlap <- rv$last_sources[rv$last_sources %in% opts]
+    sel <- if (is.null(input$sources)) {
       NULL
     } else if (length(overlap) > 0) {
       overlap
@@ -58,7 +60,7 @@ function(input, output, session) {
   })
 
   samplesSubSource <- reactive({
-    samples_sub = samplesSubYear()
+    samples_sub <- samplesSubYear()
     samples_sub[samples_sub[["Source"]] %in% input$sources, ]
   })
 
@@ -97,7 +99,7 @@ function(input, output, session) {
       st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326)
   })
 
-  output$map = renderLeaflet({
+  output$map <- renderLeaflet({
     leaflet(options = leafletOptions(attributionControl = FALSE)) |>
       setView(lng = -121.75, lat = 38.36, zoom = default_zoom) |>
       addProviderTiles(providers$Esri.WorldTopoMap, group = "Topo") |>
@@ -145,7 +147,7 @@ function(input, output, session) {
     if (nrow(sourcePoints()) > 0) {
       # switched away from using zoomLevel in groupOptions because was seeing buggy behavior
       # e.g., zoomLevel option not enforced when changing dataset
-      zl = if (is.null(input$map_zoom)) default_zoom else input$map_zoom
+      zl <- if (is.null(input$map_zoom)) default_zoom else input$map_zoom
       if (zl %in% 11:20) {
         proxy |>
           leafgl::addGlPoints(
@@ -180,18 +182,18 @@ function(input, output, session) {
   })
 
   observeEvent(input$map_draw_new_feature, {
-    feature = input$map_draw_new_feature
-    rv$shape_type = feature$geometry$type
+    feature <- input$map_draw_new_feature
+    rv$shape_type <- feature$geometry$type
     if (feature$geometry$type == "Point") {
-      radius = feature$properties$radius
-      rv$shape = make_circle(
+      radius <- feature$properties$radius
+      rv$shape <- make_circle(
         lon = feature$geometry$coordinates[[1]],
         lat = feature$geometry$coordinates[[2]],
         radius_m = radius
       )
-      rv$radius_mi = round(radius / 1609, 2)
+      rv$radius_mi <- round(radius / 1609, 2)
     } else {
-      rv$shape = geojsonsf::geojson_sf(
+      rv$shape <- geojsonsf::geojson_sf(
         jsonify::to_json(feature, unbox = TRUE)
       )
     }
@@ -199,34 +201,34 @@ function(input, output, session) {
 
   observeEvent(input$map_draw_edited_features, {
     # basically same code as used for map_draw_new_feature
-    features = input$map_draw_edited_features$features
-    feature = features[[1]]
-    rv$shape_type = feature$geometry$type
+    features <- input$map_draw_edited_features$features
+    feature <- features[[1]]
+    rv$shape_type <- feature$geometry$type
     if (feature$geometry$type == "Point") {
-      radius = feature$properties$radius
-      rv$shape = make_circle(
+      radius <- feature$properties$radius
+      rv$shape <- make_circle(
         lon = feature$geometry$coordinates[[1]],
         lat = feature$geometry$coordinates[[2]],
         radius_m = radius
       )
-      rv$radius_mi = round(radius / 1609, 2)
+      rv$radius_mi <- round(radius / 1609, 2)
     } else {
-      rv$shape = geojsonsf::geojson_sf(
+      rv$shape <- geojsonsf::geojson_sf(
         jsonify::to_json(features, unbox = TRUE)
       )
     }
   })
 
   observeEvent(input$map_draw_deleted_features, {
-    rv$shape = NULL
-    rv$shape_type = NULL
-    rv$radius_mi = NULL
+    rv$shape <- NULL
+    rv$shape_type <- NULL
+    rv$radius_mi <- NULL
   })
 
   samplesSubSpatial <- reactive({
     req(rv$shape)
-    samples_sub = samplesSubSource()
-    stations_selected = st_join(stationPoints(), rv$shape, join = st_within) |>
+    samples_sub <- samplesSubSource()
+    stations_selected <- st_join(stationPoints(), rv$shape, join = st_within) |>
       filter(!is.na(feature_type))
     samples_sub[
       samples_sub[["SourceStation"]] %in% stations_selected[["SourceStation"]],
@@ -239,18 +241,18 @@ function(input, output, session) {
 
   output$groupby <- renderUI({
     req(rv$shape, input$year_type)
-    opts = c(
+    opts <- c(
       "Taxa",
       "Source",
       "Water Year" = "WaterYear",
       "Month",
       "Day of Water Year" = "DOWY"
     )
-    sel = c("Taxa", "Source", "Water Year" = "WaterYear")
+    sel <- c("Taxa", "Source", "Water Year" = "WaterYear")
 
     if (input$year_type == "Calendar") {
-      opts = c("Taxa", "Source", "Year", "Month", "Day of Year" = "DOY")
-      sel = c("Taxa", "Source", "Year")
+      opts <- c("Taxa", "Source", "Year", "Month", "Day of Year" = "DOY")
+      sel <- c("Taxa", "Source", "Year")
     }
 
     pickerInput(
@@ -264,10 +266,10 @@ function(input, output, session) {
 
   groupby <- reactive({
     req(rv$shape)
-    gb = input$group_by
+    gb <- input$group_by
     # carry date forward if both year and day of year are selected
     if (all(c("Year", "DOY") %in% gb) | all(c("WaterYear", "DOWY") %in% gb)) {
-      gb = c(gb, "Date")
+      gb <- c(gb, "Date")
     }
     gb
   })
@@ -288,12 +290,12 @@ function(input, output, session) {
       for (x in sourcesSpatial()) {
         if (is.null(rv$counts[[x]])) {
           incProgress(1 / length(sourcesSpatial()), detail = x)
-          fl = if (x == "YBFMP") {
+          fl <- if (x == "YBFMP") {
             "Counts-YBFMP.rds"
           } else {
             paste0("Counts-SFE-", gsub(" ", "", x), ".rds")
           }
-          rv$counts[[x]] = readRDS(file.path("data", fl))
+          rv$counts[[x]] <- readRDS(file.path("data", fl))
         }
       }
     })
@@ -306,15 +308,15 @@ function(input, output, session) {
       paste("Circle radius:", rv$radius_mi, "mi")
     } else {
       # st_area returns area in sq. meters
-      area = round(as.numeric(units::set_units(st_area(rv$shape), "mi^2")), 2)
+      area <- round(as.numeric(units::set_units(st_area(rv$shape), "mi^2")), 2)
       paste(rv$shape_type, "area:", area, "sq mi")
     }
   })
 
   output$sizeSourceMessage <- renderUI({
     req(rv$shape)
-    p_col = if (input$map_groups[1] == "Topo") "black" else "white"
-    p_style = paste0("color: ", p_col, ";")
+    p_col <- if (input$map_groups[1] == "Topo") "black" else "white"
+    p_style <- paste0("color: ", p_col, ";")
     list(
       p(sizeText(), style = p_style),
       p(
@@ -329,8 +331,8 @@ function(input, output, session) {
 
   observeEvent(input$tally_fish, {
     req(rv$shape, nrow(samplesSubSpatial()) > 0)
-    samples_sub = samplesSubSpatial()
-    counts_sub = lapply(rv$counts, function(dfx) {
+    samples_sub <- samplesSubSpatial()
+    counts_sub <- lapply(rv$counts, function(dfx) {
       if (!is.null(dfx)) {
         dfx |>
           filter(SampleID %in% samples_sub$SampleID) |>
@@ -340,7 +342,7 @@ function(input, output, session) {
     }) |>
       bind_rows()
 
-    rv$summ = left_join(
+    rv$summ <- left_join(
       counts_sub,
       select(
         samples_sub,
@@ -377,20 +379,20 @@ function(input, output, session) {
   taxaSub <- reactive({
     req("Taxa" %in% colnames(rv$summ), rv$summ, input$taxa_filters)
 
-    summ_taxa = distinct(select(ungroup(rv$summ), Taxa))
+    summ_taxa <- distinct(select(ungroup(rv$summ), Taxa))
 
-    taxa_special = NULL
-    tf = input$taxa_filters[input$taxa_filters != "others"]
+    taxa_special <- NULL
+    tf <- input$taxa_filters[input$taxa_filters != "others"]
     if (length(tf) > 0) {
-      taxa_special = unique(unlist(taxa_list[tf], use.names = FALSE))
+      taxa_special <- unique(unlist(taxa_list[tf], use.names = FALSE))
     }
 
-    to = NULL
+    to <- NULL
     if ("others" %in% input$taxa_filters) {
-      to = taxa_others
+      to <- taxa_others
     }
 
-    tmp = summ_taxa |>
+    tmp <- summ_taxa |>
       filter(Taxa %in% c(taxa_special, to)) |>
       left_join(taxa_df, by = "Taxa") |>
       arrange(Taxa)
@@ -399,14 +401,14 @@ function(input, output, session) {
   output$taxa <- renderUI({
     req("Taxa" %in% colnames(rv$summ), rv$summ, taxaSub())
 
-    dfx = taxaSub()
+    dfx <- taxaSub()
 
     if (input$use_common) {
-      dfx = arrange(dfx, CommonName)
+      dfx <- arrange(dfx, CommonName)
     }
-    taxa = dfx$Taxa
+    taxa <- dfx$Taxa
     if (input$use_common) {
-      taxa = setNames(taxa, dfx$CommonName)
+      taxa <- setNames(taxa, dfx$CommonName)
     }
 
     pickerInput(
@@ -426,7 +428,7 @@ function(input, output, session) {
 
   output$months <- renderUI({
     req("Month" %in% colnames(rv$summ), rv$summ)
-    mnths = sort(unique(rv$summ$Month))
+    mnths <- sort(unique(rv$summ$Month))
     pickerInput(
       inputId = "months",
       label = "Month",
@@ -445,13 +447,13 @@ function(input, output, session) {
   output$doy <- renderUI({
     req(any(c("DOY", "DOWY") %in% colnames(rv$summ)), rv$summ)
     if (input$year_type == "Water") {
-      lbl = "Day of Water Year"
-      mn = min(rv$summ$DOWY, na.rm = TRUE)
-      mx = max(rv$summ$DOWY, na.rm = TRUE)
+      lbl <- "Day of Water Year"
+      mn <- min(rv$summ$DOWY, na.rm = TRUE)
+      mx <- max(rv$summ$DOWY, na.rm = TRUE)
     } else {
-      lbl = "Day of Year"
-      mn = min(rv$summ$DOY, na.rm = TRUE)
-      mx = max(rv$summ$DOY, na.rm = TRUE)
+      lbl <- "Day of Year"
+      mn <- min(rv$summ$DOY, na.rm = TRUE)
+      mx <- max(rv$summ$DOY, na.rm = TRUE)
     }
     sliderInput(
       "doy",
@@ -466,28 +468,28 @@ function(input, output, session) {
 
   table <- reactive({
     req(rv$summ)
-    out = rv$summ
+    out <- rv$summ
     if ("Taxa" %in% colnames(rv$summ)) {
       req(input$taxa, length(input$taxa_filters) > 0)
-      out = out[out[["Taxa"]] %in% input$taxa, ]
-      out = out |>
+      out <- out[out[["Taxa"]] %in% input$taxa, ]
+      out <- out |>
         left_join(taxa_df, by = "Taxa") |>
         relocate(CommonName, .after = Taxa)
     }
     if ("Month" %in% colnames(rv$summ)) {
       req(input$months)
-      out = out[out[["Month"]] %in% input$months, ]
+      out <- out[out[["Month"]] %in% input$months, ]
     }
     if ("DOY" %in% colnames(rv$summ)) {
       req(input$doy)
-      out = out[
+      out <- out[
         out[["DOY"]] >= input$doy[1] &
           out[["DOY"]] <= input$doy[2],
       ]
     }
     if ("DOWY" %in% colnames(rv$summ)) {
       req(input$doy)
-      out = out[
+      out <- out[
         out[["DOWY"]] >= input$doy[1] &
           out[["DOWY"]] <= input$doy[2],
       ]
@@ -497,8 +499,8 @@ function(input, output, session) {
 
   output$table <- renderReactable({
     req(rv$summ)
-    dfx = mutate(table(), Count = round(Count))
-    chars = sapply(colnames(dfx), function(x) {
+    dfx <- mutate(table(), Count = round(Count))
+    chars <- sapply(colnames(dfx), function(x) {
       max(nchar(c(x, as.character(unique(dfx[[x]])))), na.rm = TRUE)
     })
 
@@ -531,10 +533,10 @@ function(input, output, session) {
   )
 
   output$helpText <- renderUI({
-    msg = ""
+    msg <- ""
 
     if (input$nav == "Map") {
-      msg = paste0(
+      msg <- paste0(
         "The primary use-case for this app is as a first step for determining species 
       presence at specific locations based on ongoing Bay-Delta monitoring surveys (",
         yrMin(),
@@ -555,12 +557,12 @@ function(input, output, session) {
     }
 
     if (input$nav == "Table" & is.null(rv$summ)) {
-      msg = "First select data on the Map tab with the drawing tools and then click on the 
+      msg <- "First select data on the Map tab with the drawing tools and then click on the 
       'Tally Fish Abundance' button to see the summary table."
     }
 
     if (input$nav == "Table" & !is.null(rv$summ)) {
-      msg = "Click on a column heading to sort the table by that column. Filter the table 
+      msg <- "Click on a column heading to sort the table by that column. Filter the table 
       with the dropdown menu(s) in the sidebar. Click the 'Download Table' button to download a 
       CSV file with the filtered data."
     }
