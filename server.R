@@ -6,6 +6,7 @@ function(input, output, session) {
     shape_type = NULL,
     shape = NULL,
     summ = NULL,
+    denom = NULL,
     # initialize counts with empty list
     counts = setNames(vector("list", length(sources)), sources)
   )
@@ -319,33 +320,73 @@ function(input, output, session) {
   observeEvent(input$tally_fish, {
     req(rv$shape, nrow(samplesSubSpatial()) > 0)
     samples_sub <- samplesSubSpatial()
+    meta <- select(
+      samples_sub,
+      SampleID,
+      Source,
+      Year,
+      WaterYear,
+      Month,
+      DOY,
+      DOWY,
+      Date
+    )
+
     counts_sub <- lapply(rv$counts, function(dfx) {
       if (!is.null(dfx)) {
         dfx |>
           filter(SampleID %in% samples_sub$SampleID) |>
           group_by(SampleID, Taxa) |>
-          summarise(Count = sum(Count, na.rm = TRUE))
+          summarise(Count = sum(Count, na.rm = TRUE), .groups = "drop")
       }
     }) |>
       bind_rows()
 
-    rv$summ <- left_join(
-      counts_sub,
-      select(
-        samples_sub,
-        SampleID,
-        Source,
-        Year,
-        WaterYear,
-        Month,
-        DOY,
-        DOWY,
-        Date
-      ),
-      by = join_by(SampleID)
-    ) |>
-      group_by(across(all_of(groupby()))) |>
-      summarise(Count = sum(Count, na.rm = TRUE))
+    gb <- groupby()
+    has_taxa <- "Taxa" %in% gb
+    strata <- setdiff(gb, "Taxa")
+    by_sample <- left_join(counts_sub, meta, by = join_by(SampleID))
+
+    if (has_taxa) {
+      # NDetected: number of samples in the group with a positive catch.
+      # NDetected is listed first so it reads the raw Count vector, not the
+      # summed scalar created by the Count = ... line.
+      summ <- by_sample |>
+        group_by(across(all_of(gb))) |>
+        summarise(
+          NDetected = sum(Count > 0, na.rm = TRUE),
+          Count = sum(Count, na.rm = TRUE),
+          .groups = "drop"
+        )
+
+      # Denominator: distinct samples per stratum, counting ALL selected samples
+      # (including zero-catch), so frequency isn't biased by only positive rows.
+      if (length(strata) > 0) {
+        denom <- meta |>
+          group_by(across(all_of(strata))) |>
+          summarise(NSamples = n_distinct(SampleID), .groups = "drop")
+        summ <- left_join(summ, denom, by = strata)
+      } else {
+        denom <- data.frame(NSamples = n_distinct(meta$SampleID))
+        summ$NSamples <- denom$NSamples
+      }
+      # Keep the stratum-level denominator so the plot can re-pool frequency
+      # correctly even for taxa/strata absent from the (sparse) summary.
+      rv$denom <- denom
+
+      summ <- summ |>
+        mutate(Frequency = NDetected / NSamples) |>
+        select(
+          all_of(gb),
+          any_of(c("Count", "NDetected", "NSamples", "Frequency"))
+        )
+    } else {
+      summ <- by_sample |>
+        group_by(across(all_of(gb))) |>
+        summarise(Count = sum(Count, na.rm = TRUE), .groups = "drop")
+    }
+
+    rv$summ <- summ
 
     updateTabsetPanel(session, "nav", selected = "Table")
   })
@@ -502,6 +543,16 @@ function(input, output, session) {
             formatC(sum(values), format = "d", big.mark = ",")
           }
         )
+      } else if (nm == "Frequency") {
+        colDef(
+          name = "Detection Freq.",
+          minWidth = base_width,
+          format = colFormat(percent = TRUE, digits = 1)
+        )
+      } else if (nm == "NDetected") {
+        colDef(name = "N Detected", minWidth = base_width)
+      } else if (nm == "NSamples") {
+        colDef(name = "N Samples", minWidth = base_width)
       } else if (nm == first_col) {
         colDef(minWidth = base_width, footer = "Total")
       } else {
@@ -567,8 +618,10 @@ function(input, output, session) {
 
     if (nav == "Table" && !is.null(rv$summ)) {
       msg <- "Click on a column heading to sort the table by that column. Filter the table 
-      with the dropdown menu(s) in the sidebar. Click the 'Download Table' button to download a 
-      CSV file with the filtered data."
+      with the dropdown menu(s) in the sidebar. In addition to total abundance (Count), the 
+      table reports how many samples detected each taxon (N Detected), how many samples were 
+      collected (N Samples), and the detection frequency (the proportion of samples with a 
+      detection). Click the 'Download Table' button to download a CSV file with the filtered data."
     }
 
     HTML(msg)
