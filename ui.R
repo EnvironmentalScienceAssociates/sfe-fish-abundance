@@ -1,6 +1,12 @@
 page_sidebar(
   title = "SFE Fish Abundance",
-  tags$style(HTML(".popover {max-width: 400px;}")),
+  theme = bs_theme() |>
+    bs_add_rules(
+      list(
+        ".bslib-sidebar-resize-handle { display: none !important; }",
+        ".popover {max-width: 400px;}"
+      )
+    ),
   sidebar = sidebar(
     width = 340,
     conditionalPanel(
