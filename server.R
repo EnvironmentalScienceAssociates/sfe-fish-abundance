@@ -192,13 +192,17 @@ function(input, output, session) {
     rv$radius_mi <- NULL
   })
 
+  stationsSelected <- reactive({
+    req(rv$shape)
+    st_join(stationPoints(), rv$shape, join = st_within) |>
+      filter(!is.na(feature_type))
+  })
+
   samplesSubSpatial <- reactive({
     req(rv$shape)
     samples_sub <- samplesSubSource()
-    stations_selected <- st_join(stationPoints(), rv$shape, join = st_within) |>
-      filter(!is.na(feature_type))
     samples_sub[
-      samples_sub[["SourceStation"]] %in% stations_selected[["SourceStation"]],
+      samples_sub[["SourceStation"]] %in% stationsSelected()[["SourceStation"]],
     ]
   })
 
@@ -284,8 +288,24 @@ function(input, output, session) {
     req(rv$shape)
     p_col <- if ("Satellite" %in% input$map_groups) "white" else "black"
     p_style <- paste0("color: ", p_col, ";")
+    n_stations <- nrow(stationsSelected())
+    n_samples <- nrow(samplesSubSpatial())
+    plural <- function(n) if (n == 1) "" else "s"
     list(
       p(sizeText(), style = p_style),
+      p(
+        paste0(
+          n_stations,
+          " station",
+          plural(n_stations),
+          ", ",
+          n_samples,
+          " sample",
+          plural(n_samples),
+          " selected"
+        ),
+        style = p_style
+      ),
       p(
         paste(
           "Sources in selected area:",
@@ -471,9 +491,24 @@ function(input, output, session) {
       max(nchar(c(x, as.character(unique(dfx[[x]])))), na.rm = TRUE)
     })
 
-    col_widths <- function(chars) {
-      colDef(minWidth = chars * 10 + 40)
-    }
+    first_col <- names(chars)[1]
+    col_defs <- lapply(names(chars), function(nm) {
+      base_width <- chars[[nm]] * 10 + 40
+      if (nm == "Count") {
+        colDef(
+          minWidth = base_width,
+          format = colFormat(separators = TRUE),
+          footer = function(values) {
+            formatC(sum(values), format = "d", big.mark = ",")
+          }
+        )
+      } else if (nm == first_col) {
+        colDef(minWidth = base_width, footer = "Total")
+      } else {
+        colDef(minWidth = base_width)
+      }
+    })
+    names(col_defs) <- names(chars)
 
     reactable(
       dfx,
@@ -481,9 +516,10 @@ function(input, output, session) {
       fullWidth = FALSE,
       defaultColDef = colDef(
         defaultSortOrder = "desc",
-        headerStyle = list(background = "#f7f7f8")
+        headerStyle = list(background = "#f7f7f8"),
+        footerStyle = list(fontWeight = "bold")
       ),
-      columns = lapply(chars, col_widths),
+      columns = col_defs,
       showPageSizeOptions = TRUE,
       pageSizeOptions = c(15, 25, 50, 100),
       defaultPageSize = 15
@@ -500,16 +536,13 @@ function(input, output, session) {
   )
 
   output$helpText <- renderUI({
+    nav <- if (length(input$nav)) input$nav else "Map"
     msg <- ""
 
-    if (input$nav == "Map") {
-      msg <- paste0(
+    if (nav == "Map") {
+      msg <-
         "The primary use-case for this app is as a first step for determining species 
-      presence at specific locations based on ongoing Bay-Delta monitoring surveys (",
-        yrMin(),
-        " - ",
-        yrMax(),
-        "). <br><br>
+      presence at specific locations based on ongoing Bay-Delta monitoring surveys. <br><br>
       
       The Surveys dropdown menu includes only the surveys with data for the selected year range. 
       At the default zoom level, the map shows aggregated survey station locations. Zoom in to 
@@ -520,15 +553,14 @@ function(input, output, session) {
       
       After drawing a polygon, select the parameters to include in the summary table from the 
       'Group By' dropdown menu and click on 'Tally Fish Abundance'."
-      )
     }
 
-    if (input$nav == "Table" & is.null(rv$summ)) {
+    if (nav == "Table" && is.null(rv$summ)) {
       msg <- "First select data on the Map tab with the drawing tools and then click on the 
       'Tally Fish Abundance' button to see the summary table."
     }
 
-    if (input$nav == "Table" & !is.null(rv$summ)) {
+    if (nav == "Table" && !is.null(rv$summ)) {
       msg <- "Click on a column heading to sort the table by that column. Filter the table 
       with the dropdown menu(s) in the sidebar. Click the 'Download Table' button to download a 
       CSV file with the filtered data."
@@ -536,4 +568,6 @@ function(input, output, session) {
 
     HTML(msg)
   })
+
+  outputOptions(output, "helpText", suspendWhenHidden = FALSE)
 }
