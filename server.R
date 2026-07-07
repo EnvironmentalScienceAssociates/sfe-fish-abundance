@@ -303,7 +303,7 @@ function(input, output, session) {
 
   output$sizeSourceMessage <- renderUI({
     req(rv$shape)
-    p_col <- if (input$map_groups[1] == "Topo") "black" else "white"
+    p_col <- if ("Satellite" %in% input$map_groups) "white" else "black"
     p_style <- paste0("color: ", p_col, ";")
     list(
       p(sizeText(), style = p_style),
@@ -454,7 +454,7 @@ function(input, output, session) {
     )
   })
 
-  table <- reactive({
+  tableData <- reactive({
     req(rv$summ)
     out <- rv$summ
     if ("Taxa" %in% colnames(rv$summ)) {
@@ -487,7 +487,7 @@ function(input, output, session) {
 
   output$table <- renderReactable({
     req(rv$summ)
-    dfx <- mutate(table(), Count = round(Count))
+    dfx <- mutate(tableData(), Count = round(Count))
     chars <- sapply(colnames(dfx), function(x) {
       max(nchar(c(x, as.character(unique(dfx[[x]])))), na.rm = TRUE)
     })
@@ -516,7 +516,7 @@ function(input, output, session) {
       paste0("EDI-SFE-Fish-Abundance-", round(as.numeric(Sys.time())), ".csv")
     },
     content = function(file) {
-      write.csv(table(), file, row.names = FALSE)
+      write.csv(tableData(), file, row.names = FALSE)
     }
   )
 
