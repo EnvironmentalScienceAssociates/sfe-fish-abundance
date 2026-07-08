@@ -81,7 +81,7 @@ page_sidebar(
         '<a href="https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=1075&revision=2" target="_blank">SFE Data</a>'
       )),
       nav_item(HTML(
-        '<a href="https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=233&revision=5" target="_blank">YBFMP Data</a>'
+        '<a href="https://portal.edirepository.org/nis/mapbrowse?scope=edi&identifier=233&revision=6" target="_blank">YBFMP Data</a>'
       )),
       nav_item(HTML(
         '<a href="https://github.com/EnvironmentalScienceAssociates/sfe-fish-abundance" target="_blank">Code</a>'
