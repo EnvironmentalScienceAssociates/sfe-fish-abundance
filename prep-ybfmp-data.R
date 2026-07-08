@@ -1,27 +1,17 @@
-# Package ID: edi.233.5 Cataloging System:https://pasta.edirepository.org.
-# Data set title: Interagency Ecological Program: Fish catch and water quality data from the Sacramento River floodplain and tidal slough, collected by the Yolo Bypass Fish Monitoring Program, 1998-2024..
-# Data set creator:   Interagency Ecological Program -
-# Data set creator:  Lisa Vance - California Department of Water Resources
-# Data set creator:  Nicole Kwan - California Department of Water Resources
-# Contact:  Lisa Vance -  California Department of Water Resources  - lisa.vance@water.ca.gov
-# Contact:  Nicole Kwan -  California Department of Water Resources  - Nicole.Kwan@water.ca.gov
-# Contact:  Naoaki Ikemiyagi -  California Department of Fish and Wildlife  -
-# Stylesheet v2.14 for metadata conversion into program: John H. Porter, Univ. Virginia, jporter@virginia.edu
-# Uncomment the following lines to have R clear previous work, or set a working directory
-# rm(list=ls())
-
-# setwd("C:/users/my_name/my_dir")
+# code lightly modified from what is provided on EDI (or what was provided for a previous dataset version)
 
 options(HTTPUserAgent = "EDI_CodeGen")
 
-inUrl2 <- "https://pasta.lternet.edu/package/data/eml/edi/233/5/4488201fee45953b001f70acf30f7734"
+inUrl2 <- "https://pasta.lternet.edu/package/data/eml/edi/233/6/4488201fee45953b001f70acf30f7734"
 infile2 <- tempfile()
-try(download.file(
-  inUrl2,
-  infile2,
-  method = "curl",
-  extra = paste0(' -A "', getOption("HTTPUserAgent"), '"')
-))
+try(
+  download.file(
+    inUrl2,
+    infile2,
+    method = "curl",
+    extra = paste0(' -A "', getOption("HTTPUserAgent"), '"')
+  )
+)
 if (is.na(file.size(infile2))) {
   download.file(inUrl2, infile2, method = "auto")
 }
@@ -74,7 +64,7 @@ if (class(dt2$StationCode) != "factor") {
   dt2$StationCode <- as.factor(dt2$StationCode)
 }
 # attempting to convert dt2$Datetime dateTime string to R date structure (date or POSIXct)
-tmpDateFormat <- "%m/%d/%Y %H:%M"
+tmpDateFormat <- "%Y-%m-%d %H:%M:%S"
 tmp2Datetime <- as.POSIXct(dt2$Datetime, format = tmpDateFormat)
 # Keep the new dates only if they all converted correctly
 if (
@@ -88,7 +78,7 @@ if (
 }
 
 # attempting to convert dt2$SampleDate dateTime string to R date structure (date or POSIXct)
-tmpDateFormat <- "%m/%d/%Y"
+tmpDateFormat <- "%Y-%m-%d"
 tmp2SampleDate <- as.Date(dt2$SampleDate, format = tmpDateFormat)
 # Keep the new dates only if they all converted correctly
 if (
@@ -335,14 +325,16 @@ dt2$FieldComments <- as.factor(ifelse(
 ))
 
 
-inUrl7 <- "https://pasta.lternet.edu/package/data/eml/edi/233/5/89146f1382d7dfa3bbf3e4b1554eb5cc"
+inUrl7 <- "https://pasta.lternet.edu/package/data/eml/edi/233/6/89146f1382d7dfa3bbf3e4b1554eb5cc"
 infile7 <- tempfile()
-try(download.file(
-  inUrl7,
-  infile7,
-  method = "curl",
-  extra = paste0(' -A "', getOption("HTTPUserAgent"), '"')
-))
+try(
+  download.file(
+    inUrl7,
+    infile7,
+    method = "curl",
+    extra = paste0(' -A "', getOption("HTTPUserAgent"), '"')
+  )
+)
 if (is.na(file.size(infile7))) {
   download.file(inUrl7, infile7, method = "auto")
 }
@@ -407,14 +399,16 @@ if (class(dt7$MethodCode) != "factor") {
 }
 
 
-inUrl8 <- "https://pasta.lternet.edu/package/data/eml/edi/233/5/405122cb55c6996661c0dee20ab77a6c"
+inUrl8 <- "https://pasta.lternet.edu/package/data/eml/edi/233/6/405122cb55c6996661c0dee20ab77a6c"
 infile8 <- tempfile()
-try(download.file(
-  inUrl8,
-  infile8,
-  method = "curl",
-  extra = paste0(' -A "', getOption("HTTPUserAgent"), '"')
-))
+try(
+  download.file(
+    inUrl8,
+    infile8,
+    method = "curl",
+    extra = paste0(' -A "', getOption("HTTPUserAgent"), '"')
+  )
+)
 if (is.na(file.size(infile8))) {
   download.file(inUrl8, infile8, method = "auto")
 }
@@ -476,7 +470,6 @@ if (class(dt8$Genus) != "factor") {
 if (class(dt8$Species) != "factor") {
   dt8$Species <- as.factor(dt8$Species)
 }
-# if (class(dt8$Taxa)!="factor") dt8$Taxa<- as.factor(dt8$Taxa)
 
 # Convert Missing Values to NA for non-dates
 
@@ -517,14 +510,16 @@ dt8$Species <- as.factor(ifelse(
 ))
 
 
-inUrl9 <- "https://pasta.lternet.edu/package/data/eml/edi/233/5/b2b92d9dbfb78cfb1a5716174dfceab1"
+inUrl9 <- "https://pasta.lternet.edu/package/data/eml/edi/233/6/b2b92d9dbfb78cfb1a5716174dfceab1"
 infile9 <- tempfile()
-try(download.file(
-  inUrl9,
-  infile9,
-  method = "curl",
-  extra = paste0(' -A "', getOption("HTTPUserAgent"), '"')
-))
+try(
+  download.file(
+    inUrl9,
+    infile9,
+    method = "curl",
+    extra = paste0(' -A "', getOption("HTTPUserAgent"), '"')
+  )
+)
 if (is.na(file.size(infile9))) {
   download.file(inUrl9, infile9, method = "auto")
 }
@@ -572,12 +567,14 @@ if (!dir.exists("data")) {
 
 dt2 |>
   dplyr::select(SampleID = EventID, Station = StationCode, Date = SampleDate) |>
-  dplyr::left_join(dplyr::select(
-    dt7,
-    Station = StationCode,
-    Latitude,
-    Longitude
-  )) |>
+  dplyr::left_join(
+    dplyr::select(
+      dt7,
+      Station = StationCode,
+      Latitude,
+      Longitude
+    )
+  ) |>
   dplyr::mutate(
     Source = "YBFMP",
     Year = lubridate::year(Date),
@@ -605,7 +602,7 @@ dt9 |>
   saveRDS(file.path("data", "Counts-YBFMP.rds"))
 
 if (Sys.getenv("EgnyteKey") != "") {
-  remote_path = file.path(
+  remote_path <- file.path(
     "Shared",
     "Admin",
     "Practices",
